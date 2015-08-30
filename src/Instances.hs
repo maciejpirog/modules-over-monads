@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleInstances, DeriveFunctor, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleInstances, DeriveFunctor, GeneralizedNewtypeDeriving, TypeOperators #-}
 
 module Instances
   (
@@ -17,6 +17,7 @@ import Control.Monad.Reader (Reader, runReader, ReaderT(..))
 import Control.Monad.Writer (Writer, runWriter, WriterT(..))
 import Data.Void (Void(..))
 import Data.List.NonEmpty (NonEmpty(..))
+import Data.Functor.Compose (Compose(..))
 
 import Module
 
@@ -24,11 +25,16 @@ import Module
 
 -- | Right regular representation
 instance (Functor m, Monad m) => RModule m (WrappedMonad m) where
-  WrapMonad m |>>= f = WrapMonad (m >>= f)
+  WrapMonad m |>>= k = WrapMonad (m >>= k)
 
 -- | Left regular representation
 instance (Functor m, Monad m) => LModule m (WrappedMonad m) where
-  m >>=| f = WrapMonad (m >>= unwrapMonad . f)
+  m >>=| k = WrapMonad (m >>= unwrapMonad . k)
+
+-- Composition
+
+instance (Functor f, RModule m r) => RModule m (f `Compose` r) where
+  Compose f |>>= k = Compose $ fmap (|>>= k) f
 
 -- Identity
 

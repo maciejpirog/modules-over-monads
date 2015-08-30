@@ -3,7 +3,9 @@
 module Resumption
   (
     Resumption(..),
-    MWrap(..)
+    MWrap(..),
+    liftm,
+    liftr
   )
   where
 
@@ -39,3 +41,9 @@ instance (Functor m, RModule m r) => RModule (Resumption m r) (MWrap m r) where
 
 instance (Functor m, RModule m r) => Idealised (Resumption m r) (MWrap m r) where
   embed (MWrap m) = Resumption $ fmap (Free . unWrap) m
+
+liftm :: (Functor m, RModule m r) => m a -> Resumption m r a
+liftm = Resumption . fmap return
+
+liftr :: (Functor m, RModule m r) => r a -> Resumption m r a
+liftr = Resumption . return . Free . fmap Pure
