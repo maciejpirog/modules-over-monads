@@ -103,7 +103,7 @@ instance (MonadIdeal m, MonadIdeal n) => MonadIdeal (IdealCoproduct m n)
 --
 -- * @'inl' . 'return'  =  'return'@
 --
--- * @'inl' m '>>=' 'inl' n  =  'inl' (m '>>=' n)@
+-- * @'inl' m '>>=' 'inl' . f  =  'inl' (m '>>=' f)@
 inl :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => m a -> IdealCoproduct m n a
 inl m = case split m of
           Left  a  -> ICVar a
