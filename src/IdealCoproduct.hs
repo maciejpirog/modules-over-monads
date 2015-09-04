@@ -1,17 +1,30 @@
 {-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleContexts, FlexibleInstances, RankNTypes #-}
 
+{-|
+Module      : IdealCoproduct
+Description : Coproduct of ideal monads
+Copyright   : (c) Maciej Piróg
+License     : MIT
+Maintainer  : maciej.adam.pirog@gmail.com
+Stability   : experimental
+
+Haskell implementation of the coproduct of two ideal monads. For
+abstract nonsense, consult N. Ghani, T. Uustalu
+/Coproducts of ideal monads/
+<http://www.cs.ioc.ee/~tarmo/papers/fics03-tia.pdf>.
+-}
 module IdealCoproduct
   (
     Turns(..),
     IdealCoproduct(..),
     sym,
     AmbiTurns(..),
-    inl,
-    inr,
+    liftl,
+    liftr,
     foldTurns,
     foldIdealCoproduct,
-    foldTurnsM,
-    foldIdealCoproductM
+    interpTurns,
+    interpIdealCoproduct
   )
   where
 
@@ -82,7 +95,7 @@ instance (Functor h, Functor t) => Functor (AmbiTurns h t) where
   fmap f (AmbiTurns (Left  i)) = AmbiTurns $ Left  $ fmap f i
   fmap f (AmbiTurns (Right i)) = AmbiTurns $ Right $ fmap f i
 
-instance (MonadIdeal m, MonadIdeal n) => AdjoinedUnit (IdealCoproduct m n) where
+instance (MonadIdeal m, MonadIdeal n) => MonadIdeal (IdealCoproduct m n) where
   type Ideal (IdealCoproduct m n) = AmbiTurns (Ideal m) (Ideal n)
   split (ICVar   a) = Left a
   split (ICLeft  i) = Right $ AmbiTurns $ Left  i
@@ -96,57 +109,56 @@ instance (MonadIdeal m, MonadIdeal n, i ~ AmbiTurns (Ideal m) (Ideal n)) => Idea
   embed (AmbiTurns (Left  i)) = ICLeft  i
   embed (AmbiTurns (Right i)) = ICRight i  
 
-instance (MonadIdeal m, MonadIdeal n) => MonadIdeal (IdealCoproduct m n)
-
 -- | Lift an ideal monad @m@ to @IdealCoproduct m n@. The function
 -- 'inl' respects the equations of the 'MonadTrans' class, that is:
 --
--- * @'inl' . 'return'  =  'return'@
+-- * @'liftl' . 'return'  =  'return'@
 --
--- * @'inl' m '>>=' 'inl' . f  =  'inl' (m '>>=' f)@
-inl :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => m a -> IdealCoproduct m n a
-inl m = case split m of
-          Left  a  -> ICVar a
-          Right m' -> ICLeft $ Turns $ fmap Left m'
+-- * @'liftl' m '>>=' 'liftl' . f  =  'liftl' (m '>>=' f)@
+liftl :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => m a -> IdealCoproduct m n a
+liftl m = case split m of
+            Left  a  -> ICVar a
+            Right m' -> ICLeft $ Turns $ fmap Left m'
 
--- | Symmetric version of 'inl'.
-inr :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => n a -> IdealCoproduct m n a
-inr = sym . inl
+-- | Symmetric version of 'liftl'.
+liftr :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => n a -> IdealCoproduct m n a
+liftr = sym . liftl
 
 -- | Fold the structure of a 'Turns' using an @h@-algebra and a
 -- @t@-algebra.
-foldTurns :: (Functor h, Functor t) => (h b -> b) -> (t b -> b) -> (a -> b) -> Turns h t a -> b
-foldTurns f g h (Turns t) = f $ fmap aux t
+foldTurns :: (Functor h, Functor t) => (h a -> a) -> (t a -> a) -> Turns h t a -> a
+foldTurns f g (Turns t) = f $ fmap aux t
  where
-  aux (Left  a) = h a
-  aux (Right i) = foldTurns g f h i
+  aux (Left  a) = a
+  aux (Right i) = foldTurns g f i
 
 -- | Fold the structure of an 'IdealCoproduct' using an @m@-algebra
 -- and a @n@-algebra.
-foldIdealCoproduct :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => (m b -> b) -> (n b -> b) -> (a -> b) -> IdealCoproduct m n a -> b
-foldIdealCoproduct f g h (ICVar   a) = h a
-foldIdealCoproduct f g h (ICLeft  i) =
-  foldTurns (f . embed) (g . embed) h i
-foldIdealCoproduct f g h (ICRight i) =
-  foldTurns (g . embed) (f . embed) h i
+foldIdealCoproduct :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => (m a -> a) -> (n a -> a) -> IdealCoproduct m n a -> a
+foldIdealCoproduct f g (ICVar   a) = a
+foldIdealCoproduct f g (ICLeft  i) =
+  foldTurns (f . embed) (g . embed) i
+foldIdealCoproduct f g (ICRight i) =
+  foldTurns (g . embed) (f . embed) i
 
 -- | Fold the structure of a 'Turns' by interpreting each level as
 -- a computation in a monad @k@ and then @'join'@-ing them to
 -- obtain one computation in @k@.
-foldTurnsM :: (Monad k) => (forall a. h a -> k a) -> (forall a. t a -> k a) -> Turns h t a -> k a
-foldTurnsM f g (Turns h) = f h >>= aux
+interpTurns :: (Monad k) => (forall a. h a -> k a) -> (forall a. t a -> k a) -> Turns h t a -> k a
+interpTurns f g (Turns h) = f h >>= aux
  where
   aux (Left  a) = return a
-  aux (Right i) = foldTurnsM g f i
+  aux (Right i) = interpTurns g f i
 
 -- | Fold the structure of an 'IdealCoproduct' by interpreting each
 -- level as a computation in a monad @k@ and then @'join'@-ing them
--- to obtain one computation in @k@. From the category-theoretic
--- point of view, @'foldIdealCoproductM'@ is the coproduct
--- mediator.
-foldIdealCoproductM :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n, Monad k) => (forall a. m a -> k a) -> (forall a. n a -> k a) -> IdealCoproduct m n a -> k a
-foldIdealCoproductM f g (ICVar   a) = return a
-foldIdealCoproductM f g (ICLeft  i) =
-  foldTurnsM (f . embed) (g . embed) i
-foldIdealCoproductM f g (ICRight i) =
-  foldTurnsM (g . embed) (f . embed) i
+-- to obtain one computation in @k@.
+-- From the category-theoretic point of view, if the first two
+-- arguments are ideal monad morphisms, @'interpIdealCoproduct'@ is
+-- the coproduct mediator.
+interpIdealCoproduct :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n, Monad k) => (forall a. m a -> k a) -> (forall a. n a -> k a) -> IdealCoproduct m n a -> k a
+interpIdealCoproduct f g (ICVar   a) = return a
+interpIdealCoproduct f g (ICLeft  i) =
+  interpTurns (f . embed) (g . embed) i
+interpIdealCoproduct f g (ICRight i) =
+  interpTurns (g . embed) (f . embed) i

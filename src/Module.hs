@@ -1,5 +1,22 @@
 {-# LANGUAGE TypeFamilies, FlexibleContexts, MultiParamTypeClasses #-}
 
+{-|
+Module      : Module
+Description : Left and right modules over monads, idealised and
+              ideal monads
+Copyright   : (c) Maciej Piróg
+License     : MIT
+Maintainer  : maciej.adam.pirog@gmail.com
+Stability   : experimental
+
+Haskell implementation of
+
+* Left and right modules over monads. 
+For abstract nonsense, consult M. Piróg, N. Wu, J. Gibbons /Modules over monads and their algebras/ <https://coalg.org/calco15/papers/p18-Piróg.pdf>.
+
+* Idealised and ideal monads.
+For abstract nonsense, consult S. Milius /Completely iterative algebras and completely iterative monads/.
+-}
 module Module
   (
     -- * Right modules over monads
@@ -10,8 +27,8 @@ module Module
     actl,
     -- * Idealised and ideal monads
     Idealised(..),
-    AdjoinedUnit(..),
-    MonadIdeal(..)
+    MonadIdeal(..),
+    fuse
   )
   where
 
@@ -69,22 +86,6 @@ class (RModule m r) => Idealised m r where
   -- | Represent a computation in @r@ as a computation in @m@.
   embed :: r a -> m a
 
-{- | A monad with an explicit unit (that is, a computation obtained
-with @'return'@. This class only makes sense if @m@ is idealised
-with @'Ideal' m@.
--}
-class (Monad m) => AdjoinedUnit m where
-
-  -- | Type of non-pure computations, that is, others than those
-  -- obtained with @'return'@.
-  type Ideal m :: * -> *
-
-  -- | Represent a monad as a disjoint sum of pure values and
-  -- non-pure computations.
-  split :: m a -> Either a (Ideal m a)
-
---  fuse :: Either a (Ideal m a) -> m a
-
 {- | The 'MonadIdeal' class is a subclass of 'Monad' with the
 following property: Given an ideal monad @m@, each value of @m a@
 is either a pure value of the type @a@ (this can be obtained with
@@ -102,4 +103,18 @@ Instances should satisfy the following:
 
 * @'split' . 'either' 'return' 'embed' = 'id'@
 -}
-class (AdjoinedUnit m, Idealised m (Ideal m)) => MonadIdeal m
+class (Idealised m (Ideal m)) => MonadIdeal m where
+
+  -- | Type of non-pure computations, that is, others than those
+  -- obtained with @'return'@.
+  type Ideal m :: * -> *
+
+  -- | Represent a monad as a disjoint sum of pure values and
+  -- non-pure computations.
+  split :: m a -> Either a (Ideal m a)
+
+-- | Reconstruct a monad from either a return value or an ideal.
+-- A right and left inverse of @'split'@.
+fuse :: (MonadIdeal m) => Either a (Ideal m a) -> m a
+fuse (Left  a) = return a
+fuse (Right r) = embed r

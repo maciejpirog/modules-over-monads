@@ -44,11 +44,9 @@ instance RModule Identity (Const Void) where
 instance Idealised Identity (Const Void) where
   embed _ = error "constant void..."
 
-instance AdjoinedUnit Identity where
+instance MonadIdeal Identity where
   type Ideal Identity = Const Void
   split (Identity a)  = Left a
-
-instance MonadIdeal Identity
 
 -- Maybe
 
@@ -58,12 +56,10 @@ instance RModule Maybe (Const ()) where
 instance Idealised Maybe (Const ()) where
   embed _ = Nothing
 
-instance AdjoinedUnit Maybe where
+instance MonadIdeal Maybe where
   type Ideal Maybe = Const ()
   split (Just a)  = Left a
   split (Nothing) = Right $ Const ()
-
-instance MonadIdeal Maybe
 
 -- Either
 
@@ -73,12 +69,10 @@ instance RModule (Either e) (Const e) where
 instance Idealised (Either e) (Const e) where
   embed (Const e) = Left e
 
-instance AdjoinedUnit (Either e) where
+instance MonadIdeal (Either e) where
   type Ideal (Either e) = Const e
   split (Left  e) = Right $ Const e
   split (Right a) = Left  a
-
-instance MonadIdeal (Either e)
 
 -- NonEmpty
 
@@ -100,12 +94,10 @@ instance RModule NonEmpty AtLeast2 where
 instance Idealised NonEmpty AtLeast2 where
   embed = toNonEmpty
 
-instance AdjoinedUnit NonEmpty where
+instance MonadIdeal NonEmpty where
   type Ideal NonEmpty = AtLeast2
   split (x :| []) = Left x
   split xs        = Right $ fromNonEmpty xs
-
-instance MonadIdeal NonEmpty
 
 -- Free
 
@@ -122,12 +114,10 @@ instance (Functor f) => RModule (Free f) (Wrap f) where
 instance (Functor f) => Idealised (Free f) (Wrap f) where
   embed = Free . unWrap
 
-instance (Functor f) => AdjoinedUnit (Free f) where
+instance (Functor f) => MonadIdeal (Free f) where
   type Ideal (Free f) = Wrap f
   split (Pure x) = Left x
   split (Free f) = Right $ Wrap f
-
-instance (Functor f) => MonadIdeal (Free f)
 
 -- Reader + Writer
 
