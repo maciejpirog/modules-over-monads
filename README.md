@@ -13,6 +13,8 @@ Note that the current placement of things in files is rather temporary. At the m
 * **IdealCoproduct.hs** coproduct of ideal monads (see N.Ghani, T.Uustalu [Coproducts of ideal monads](http://www.cs.ioc.ee/~tarmo/papers/fics03-tia.pdf))
 * **Resumption.hs** generalised resumption monad (see M.Piróg, N.Wu, J.Gibbons [Modules over monads and their algebras](https://coalg.org/calco15/papers/p18-Pir%C3%B3g.pdf))
 
+Run `make` to compile haddock docs.
+
 Dependencies
 ------------
 

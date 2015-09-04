@@ -25,7 +25,7 @@ module Resumption
 
 import Control.Applicative (Applicative(..))
 import Control.Monad (ap)
-import Control.Monad.Free (Free(..), iter, foldFree)
+import Control.Monad.Free (Free(..), iter, foldFree, liftF)
 
 import Module
 import Instances
@@ -73,10 +73,16 @@ liftr = Resumption . return . Free . fmap Pure
 -- | Fold the structure of a resumption using an @m@-algebra and
 -- and @r@-algebra.
 foldResumption :: (Functor m, Functor r) => (m a -> a) -> (r a -> a) -> Resumption m r a -> a
-foldResumption f g (Resumption m) = f (fmap (iter g) m)
+foldResumption f g (Resumption m) = f $ fmap (iter g) m
 
 -- | Fold the structure of a resumption by interpreting each layer
 -- as a computation in a monad @k@ and then @'join'@-ing the
 -- layers.
 interpResumption :: (Functor k, Monad k) => (forall a. m a -> k a) -> (forall a. r a -> k a) -> Resumption m r a -> k a
 interpResumption f g (Resumption m) = f m >>= foldFree g
+
+-- | Unfold structure step-by-step.
+unfold :: (Functor m, RModule m r) => (s -> Either a (m (r s))) -> s -> Resumption m r a
+unfold f s = case f s of
+               Left  a -> return a
+               Right m -> (Resumption $ fmap liftF m) >>= unfold f
