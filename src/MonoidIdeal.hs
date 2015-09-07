@@ -100,7 +100,7 @@ instance (Monoid r) => MonoidIdeal (Maybe r) where
   type MIdeal (Maybe r) = r
   misplit x = x
   mifuse x = x
-  r `miappend` Nothing = r
+  r `miappend` Nothing  = r
   r `miappend` (Just a) = r `mappend` a
 
 instance MonoidIdeal (First r) where
@@ -127,6 +127,7 @@ instance MonoidIdeal (Sum Word) where
 
 -- | Ideal of the product of two ideal monoids.
 data MaybeProduct a b = MLeft a | MRight b | MBoth a b
+  deriving (Eq)
 
 instance (MonoidIdeal a, MonoidIdeal b) => MonoidIdeal (a, b) where
   type MIdeal (a, b) = MaybeProduct (MIdeal a) (MIdeal b)

@@ -14,18 +14,25 @@ Generalised resumption monad a la M. Piróg, N. Wu, J. Gibbons
 -}
 module Resumption
   (
+    -- * Datatype of generalised resumptions
     Resumption(..),
     MWrap(..),
     liftm,
     liftr,
     foldResumption,
-    interpResumption
+    interpResumption,
+    unfold,
+    -- * Moggi's monad transformers
+    RRRResumption(..),
+    MoggiResumption(..)
   )
   where
 
-import Control.Applicative (Applicative(..))
-import Control.Monad (ap)
+import Control.Applicative (Applicative(..), WrappedMonad(..))
+import Control.Monad (ap, liftM)
 import Control.Monad.Free (Free(..), iter, foldFree, liftF)
+import Control.Monad.Trans (MonadTrans(..))
+import Data.Functor.Compose (Compose(..))
 
 import Module
 import Instances
@@ -62,12 +69,12 @@ instance (Functor m, RModule m r) => Idealised (Resumption m r) (MWrap m r) wher
 
 -- | Lifts a computation in a monad @m@ to a computation in the
 -- resumption monad.
-liftm :: (Functor m, RModule m r) => m a -> Resumption m r a
-liftm = Resumption . fmap return
+liftm :: (RModule m r) => m a -> Resumption m r a
+liftm = Resumption . liftM Pure
 
 -- | Lifts a value of a right module over a monad @m@ to a
 -- computation in the resumption monad.
-liftr :: (Functor m, RModule m r) => r a -> Resumption m r a
+liftr :: (RModule m r) => r a -> Resumption m r a
 liftr = Resumption . return . Free . fmap Pure
 
 -- | Fold the structure of a resumption using an @m@-algebra and
@@ -86,3 +93,24 @@ unfold :: (Functor m, RModule m r) => (s -> Either a (m (r s))) -> s -> Resumpti
 unfold f s = case f s of
                Left  a -> return a
                Right m -> (Resumption $ fmap liftF m) >>= unfold f
+
+--
+-- Moggi's monad transformers
+--
+
+-- | A wrapper for resumptions based on the right-regular
+-- representation module.
+newtype RRRResumption m a =
+  RRRR { unRRRR :: Resumption m (WrappedMonad m) a}
+ deriving (Functor, Monad, Applicative)
+
+instance MonadTrans RRRResumption where
+  lift = RRRR . liftm
+
+-- | A wrapper for resumptions a la Moggi.
+newtype MoggiResumption f m a =
+  MoggiR { unMoggiR :: Resumption m (Compose f (WrappedMonad m)) a}
+ deriving (Functor, Monad, Applicative)
+
+instance (Functor f) => MonadTrans (MoggiResumption f) where
+  lift = MoggiR . liftm

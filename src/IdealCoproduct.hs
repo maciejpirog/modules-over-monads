@@ -115,13 +115,13 @@ instance (MonadIdeal m, MonadIdeal n, i ~ AmbiTurns (Ideal m) (Ideal n)) => Idea
 -- * @'liftl' . 'return'  =  'return'@
 --
 -- * @'liftl' m '>>=' 'liftl' . f  =  'liftl' (m '>>=' f)@
-liftl :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => m a -> IdealCoproduct m n a
+liftl :: (MonadIdeal m, MonadIdeal n) => m a -> IdealCoproduct m n a
 liftl m = case split m of
             Left  a  -> ICVar a
             Right m' -> ICLeft $ Turns $ fmap Left m'
 
 -- | Symmetric version of 'liftl'.
-liftr :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => n a -> IdealCoproduct m n a
+liftr :: (MonadIdeal m, MonadIdeal n) => n a -> IdealCoproduct m n a
 liftr = sym . liftl
 
 -- | Fold the structure of a 'Turns' using an @h@-algebra and a
@@ -134,7 +134,7 @@ foldTurns f g (Turns t) = f $ fmap aux t
 
 -- | Fold the structure of an 'IdealCoproduct' using an @m@-algebra
 -- and a @n@-algebra.
-foldIdealCoproduct :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n) => (m a -> a) -> (n a -> a) -> IdealCoproduct m n a -> a
+foldIdealCoproduct :: (MonadIdeal m, MonadIdeal n) => (m a -> a) -> (n a -> a) -> IdealCoproduct m n a -> a
 foldIdealCoproduct f g (ICVar   a) = a
 foldIdealCoproduct f g (ICLeft  i) =
   foldTurns (f . embed) (g . embed) i
@@ -156,7 +156,7 @@ interpTurns f g (Turns h) = f h >>= aux
 -- From the category-theoretic point of view, if the first two
 -- arguments are ideal monad morphisms, @'interpIdealCoproduct'@ is
 -- the coproduct mediator.
-interpIdealCoproduct :: (Functor (Ideal m), Functor (Ideal n), MonadIdeal m, MonadIdeal n, Monad k) => (forall a. m a -> k a) -> (forall a. n a -> k a) -> IdealCoproduct m n a -> k a
+interpIdealCoproduct :: (MonadIdeal m, MonadIdeal n, Monad k) => (forall a. m a -> k a) -> (forall a. n a -> k a) -> IdealCoproduct m n a -> k a
 interpIdealCoproduct f g (ICVar   a) = return a
 interpIdealCoproduct f g (ICLeft  i) =
   interpTurns (f . embed) (g . embed) i

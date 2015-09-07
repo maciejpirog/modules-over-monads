@@ -25,11 +25,11 @@ import MonoidIdeal (MonoidIdeal(..))
 -- Regular representations
 
 -- | Right regular representation
-instance (Functor m, Monad m) => RModule m (WrappedMonad m) where
+instance (Monad m) => RModule m (WrappedMonad m) where
   WrapMonad m |>>= k = WrapMonad (m >>= k)
 
 -- | Left regular representation
-instance (Functor m, Monad m) => LModule m (WrappedMonad m) where
+instance (Monad m) => LModule m (WrappedMonad m) where
   m >>=| k = WrapMonad (m >>= unwrapMonad . k)
 
 -- Composition
