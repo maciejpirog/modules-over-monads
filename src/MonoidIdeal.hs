@@ -2,8 +2,7 @@
 
 {-|
 Module      : Resumption
-Description : Positive monoids (aka zerosumfree, conical, or
-              centreless monoids)
+Description : Ideal monoids (semigroups with freely adjoined unit)
 Copyright   : (c) Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
@@ -13,10 +12,10 @@ Class of ideal monoids (that is, monoids that are semigroups with
 freely adjoined unit).
 -}
 
-module MonoidPositive
+module MonoidIdeal
   (
-    -- * @'MonoidPositive'@ typeclass
-    MonoidPositive(..),
+    -- * @'MonoidIdeal'@ typeclass
+    MonoidIdeal(..),
     -- * Products of ideal monoids
     MaybeProduct(..),
     -- * Additional functions
@@ -30,7 +29,7 @@ import Data.Void
 import Data.List.NonEmpty
 import Data.Maybe (fromJust)
 
-class (Monoid r) => MonoidPositive r where
+class (Monoid r) => MonoidIdeal r where
 
   -- | Type of elements of the semigroup.
   type MIdeal r :: *
@@ -61,7 +60,7 @@ class (Monoid r) => MonoidPositive r where
   -- is not necessarily injective.
   miappend :: MIdeal r -> r -> MIdeal r
 
-instance MonoidPositive Ordering where
+instance MonoidIdeal Ordering where
   type MIdeal Ordering = Bool
   misplit EQ = Nothing
   misplit LT = Just False
@@ -70,54 +69,54 @@ instance MonoidPositive Ordering where
   miembed True  = GT
   x `miappend` _ = x
 
-instance MonoidPositive () where
+instance MonoidIdeal () where
   type MIdeal () = Void
   misplit () = Nothing
   miembed _ = ()
   x `miappend` _ = x
 
-instance MonoidPositive Any where
+instance MonoidIdeal Any where
   type MIdeal Any = ()
   misplit (Any True)  = Just ()
   misplit (Any False) = Nothing
   miembed () = Any True
   () `miappend` _ = ()
 
-instance MonoidPositive All where
+instance MonoidIdeal All where
   type MIdeal All = ()
   misplit (All False) = Just ()
   misplit (All True)  = Nothing
   miembed () = All False
   () `miappend` _ = ()
 
-instance MonoidPositive [a] where
+instance MonoidIdeal [a] where
   type MIdeal [a] = NonEmpty a
   misplit []     = Nothing
   misplit (x:xs) = Just (x :| xs)
   miembed (x :| xs) = x:xs
   (x :| xs) `miappend` ys = x :| (xs ++ ys)
 
-instance (Monoid r) => MonoidPositive (Maybe r) where
+instance (Monoid r) => MonoidIdeal (Maybe r) where
   type MIdeal (Maybe r) = r
   misplit x = x
   mifuse x = x
   r `miappend` Nothing  = r
   r `miappend` (Just a) = r `mappend` a
 
-instance MonoidPositive (First r) where
+instance MonoidIdeal (First r) where
   type MIdeal (First r) = r
   misplit (First x) = x
   miembed x = First $ Just x
   r `miappend` _ = r
 
-instance MonoidPositive (Last r) where
+instance MonoidIdeal (Last r) where
   type MIdeal (Last r) = r
   misplit (Last x) = x
   miembed x = Last $ Just x
   r `miappend` Last Nothing  = r
   _ `miappend` Last (Just x) = x
 
-instance MonoidPositive (Sum Word) where
+instance MonoidIdeal (Sum Word) where
   type MIdeal (Sum Word) = Word
   misplit (Sum 0) = Nothing
   misplit (Sum x) = Just x
@@ -130,7 +129,7 @@ instance MonoidPositive (Sum Word) where
 data MaybeProduct a b = MLeft a | MRight b | MBoth a b
   deriving (Eq)
 
-instance (MonoidPositive a, MonoidPositive b) => MonoidPositive (a, b) where
+instance (MonoidIdeal a, MonoidIdeal b) => MonoidIdeal (a, b) where
   type MIdeal (a, b) = MaybeProduct (MIdeal a) (MIdeal b)
   misplit (a, b) = case (misplit a, misplit b) of
                      (Nothing, Nothing) -> Nothing
@@ -146,5 +145,5 @@ instance (MonoidPositive a, MonoidPositive b) => MonoidPositive (a, b) where
        (a, b) = miembed m
 
 -- | Check if a value of an ideal monoid is the unit.
-isUnit :: (MonoidPositive m) => m -> Bool
+isUnit :: (MonoidIdeal m) => m -> Bool
 isUnit = maybe True (const False) . misplit

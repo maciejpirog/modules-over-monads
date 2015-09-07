@@ -20,7 +20,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Data.Functor.Compose (Compose(..))
 
 import Module
-import MonoidPositive (MonoidPositive(..))
+import MonoidIdeal (MonoidIdeal(..))
 
 -- Regular representations
 
@@ -132,19 +132,19 @@ instance RModule (State s) (Writer s) where
   w |>>= f = WriterT $ Identity $ runState (f a) s
    where (a, s)  = runWriter w
 
--- MonoidPositive
+-- MonoidIdeal
 
-instance (MonoidPositive r, i ~ MIdeal r) => RModule (Writer r) (Writer i) where
+instance (MonoidIdeal r, i ~ MIdeal r) => RModule (Writer r) (Writer i) where
   WriterT (Identity (a, w)) |>>= f =
      case f a of
        WriterT (Identity (b, r)) ->
          WriterT $ Identity (b, w `miappend` r)
 
-instance (MonoidPositive r, i ~ MIdeal r) => Idealised (Writer r) (Writer i) where
+instance (MonoidIdeal r, i ~ MIdeal r) => Idealised (Writer r) (Writer i) where
   embed (WriterT (Identity (a, w))) =
      WriterT $ Identity (a, miembed w) 
 
-instance (MonoidPositive r) => MonadIdeal (Writer r) where
+instance (MonoidIdeal r) => MonadIdeal (Writer r) where
   type Ideal (Writer r) = Writer (MIdeal r)
   split w  = case misplit r of
                Nothing -> Left a
