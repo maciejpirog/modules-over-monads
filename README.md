@@ -1,7 +1,7 @@
-Modules over Monads library
-===========================
+"Modules over Monads" Haskell library
+=====================================
 
-Haskell library for modules over monads, idealised monads, and ideal monads. This library implements:
+A Haskell library for modules over monads, idealised monads, and ideal monads. It implements the following:
 
 * Left and right modules over monads. See M. Piróg, N. Wu, J. Gibbons *Modules over monads and their algebras* <https://coalg.org/calco15/papers/p18-Piróg.pdf>.
 
