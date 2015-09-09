@@ -3,7 +3,7 @@
 {-|
 Module      : IdealCoproduct
 Description : Coproduct of ideal monads
-Copyright   : (c) Maciej Piróg
+Copyright   : (c) 2015 Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
 Stability   : experimental

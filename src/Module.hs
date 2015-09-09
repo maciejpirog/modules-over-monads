@@ -4,7 +4,7 @@
 Module      : Module
 Description : Left and right modules over monads, idealised and
               ideal monads
-Copyright   : (c) Maciej Piróg
+Copyright   : (c) 2015 Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
 Stability   : experimental
@@ -15,7 +15,7 @@ Haskell implementation of
 For abstract nonsense, consult M. Piróg, N. Wu, J. Gibbons /Modules over monads and their algebras/ <https://coalg.org/calco15/papers/p18-Piróg.pdf>.
 
 * Idealised and ideal monads.
-For abstract nonsense, consult S. Milius /Completely iterative algebras and completely iterative monads/.
+For abstract nonsense, consult S. Milius /Completely iterative algebras and completely iterative monads/ <http://www.iti.cs.tu-bs.de/~milius/phd/M1.pdf>.
 -}
 module Module
   (

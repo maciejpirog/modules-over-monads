@@ -3,7 +3,7 @@
 {-|
 Module      : Resumption
 Description : Generalised resumption monad
-Copyright   : (c) Maciej Piróg
+Copyright   : (c) 2015 Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
 Stability   : experimental
@@ -23,8 +23,13 @@ module Resumption
     interpResumption,
     unfold,
     -- * Moggi's monad transformers
+    MoggiResumption(..),
+    force,
+    hold,
+    interpFM,
+    interpMoggiR,
     RRRResumption(..),
-    MoggiResumption(..)
+    runRRRR
   )
   where
 
@@ -32,6 +37,7 @@ import Control.Applicative (Applicative(..), WrappedMonad(..))
 import Control.Monad (ap, liftM)
 import Control.Monad.Free (Free(..), iter, foldFree, liftF)
 import Control.Monad.Trans (MonadTrans(..))
+import Control.Monad.Identity (Identity(..))
 import Data.Functor.Compose (Compose(..))
 
 import Module
@@ -98,15 +104,6 @@ unfold f s = case f s of
 -- Moggi's monad transformers
 --
 
--- | A wrapper for resumptions based on the right-regular
--- representation module.
-newtype RRRResumption m a =
-  RRRR { unRRRR :: Resumption m (WrappedMonad m) a}
- deriving (Functor, Monad, Applicative)
-
-instance MonadTrans RRRResumption where
-  lift = RRRR . liftm
-
 -- | A wrapper for resumptions a la Moggi.
 newtype MoggiResumption f m a =
   MoggiR { unMoggiR :: Resumption m (Compose f (WrappedMonad m)) a}
@@ -114,3 +111,32 @@ newtype MoggiResumption f m a =
 
 instance (Functor f) => MonadTrans (MoggiResumption f) where
   lift = MoggiR . liftm
+
+-- | Get one level of computation out of a resumption. Inverse of @'hold'@.
+force :: (Functor f, Monad m) => MoggiResumption f m a -> m (Either a (f (MoggiResumption f m a)))
+force (MoggiR (Resumption m)) = liftM aux m
+ where
+  aux (Pure a) = Left a 
+  aux (Free (Compose f)) =
+    Right $ fmap (MoggiR . Resumption . unwrapMonad) f
+ 
+-- | Hold a computation and store it in a resumption. Inverse of @'force'@.
+hold :: (Functor f, Monad m) => m (Either a (f (MoggiResumption f m a))) -> MoggiResumption f m a
+hold m = MoggiR $ Resumption $ liftM aux m
+ where
+  aux (Left a)  = Pure a
+  aux (Right f) = Free $ Compose $ fmap (WrapMonad . unResumption . unMoggiR) f
+
+interpFM :: (Monad k) => (forall a. f a -> k a) -> (forall a. m a -> k a) -> Compose f (WrappedMonad m) a -> k a 
+interpFM g h (Compose f) = g f >>= (h . unwrapMonad)
+
+interpMoggiR :: (Functor k, Monad k) => (forall a. f a -> k a) -> (forall a. m a -> k a) -> MoggiResumption f m a -> k a
+interpMoggiR g h = interpResumption h (interpFM g h) . unMoggiR
+
+-- | A wrapper for resumptions based on the right-regular
+-- representation module.
+type RRRResumption = MoggiResumption Identity
+
+-- | Run a resumption as a single computation
+runRRRR :: (Functor m, Monad m) => RRRResumption m a -> m a
+runRRRR = interpMoggiR (return . runIdentity) id
