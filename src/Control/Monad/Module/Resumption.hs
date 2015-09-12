@@ -23,9 +23,12 @@ module Control.Monad.Module.Resumption
     interpResumption,
     unfold,
     -- * Moggi's monad transformers
+    -- $moggiR
     MoggiResumption(..),
     force,
     hold,
+    foldFM,
+    foldMoggiR,
     interpFM,
     interpMoggiR,
     RRRResumption(..),
@@ -104,6 +107,24 @@ unfold f s = case f s of
 -- Moggi's monad transformers
 --
 
+-- $moggiR
+-- In a paper /An Abstract View of Programming Languages/
+-- E. Moggi presented a monad that in Haskell could be implemented
+-- as follows (assume @m@ to be a monad, and @f@ to be a functor):
+--
+-- @newtype Res f m a = Res (m ('Either' a (f (Res f m a))))@
+--
+-- It could be shown that Moggi's monad corresponds to the
+-- @'Resumption'@ monad for a module given by:
+--
+-- @'Compose' f ('WrappedMonad' m)@
+--
+-- Moggi's monad is sometimes called the /free monad transformer/
+-- and is used, for example, in the @pipes@ package.
+--
+-- The following functions makes it easier to work with Moggi's
+-- monad.
+
 -- | A wrapper for resumptions a la Moggi.
 newtype MoggiResumption f m a =
   MoggiR { unMoggiR :: Resumption m (Compose f (WrappedMonad m)) a}
@@ -127,9 +148,19 @@ hold m = MoggiR $ Resumption $ liftM aux m
   aux (Left a)  = Pure a
   aux (Right f) = Free $ Compose $ fmap (WrapMonad . unResumption . unMoggiR) f
 
+foldFM :: (Functor f) => (f a -> a) -> (m a -> a) -> Compose f (WrappedMonad m) a -> a
+foldFM g h (Compose f) = g $ fmap (h . unwrapMonad) f
+
+-- | Fold the structure of a Moggi resumption using an @f@-algebra and an @m@-algebra.
+foldMoggiR :: (Functor m, Monad m, Functor f) => (f a -> a) -> (m a -> a) -> MoggiResumption f m a -> a
+foldMoggiR g h = foldResumption h (foldFM g h) . unMoggiR
+
 interpFM :: (Monad k) => (forall a. f a -> k a) -> (forall a. m a -> k a) -> Compose f (WrappedMonad m) a -> k a 
 interpFM g h (Compose f) = g f >>= (h . unwrapMonad)
 
+-- | Fold the structure of a resumption by interpreting each layer
+-- as a computation in a monad @k@ and then @'join'@-ing the
+-- layers.
 interpMoggiR :: (Functor k, Monad k) => (forall a. f a -> k a) -> (forall a. m a -> k a) -> MoggiResumption f m a -> k a
 interpMoggiR g h = interpResumption h (interpFM g h) . unMoggiR
 

@@ -45,7 +45,8 @@ familiar monoid instance:
 @ ('Semigroup' s) => 'Monoid' ('Maybe' s) @
 
 However, we want to treat /being/ an ideal monoid as a property of
-a monoid, not necessarily construct it explicitly as a @'Maybe s'@ from a semigroup @'s'@. That is, we want a @'Monoid'@ subcalss,
+a monoid, not necessarily construct it explicitly as a @'Maybe s'@ 
+from a semigroup @'s'@. That is, we want a @'Monoid'@ subcalss,
 which we call @'MonoidIdeal'@. Each instance @'MonoidIdeal' m@
 contains a type of the ideal (@'MIdeal' m@), and functions
 (necessarily isomorphisms) that allow @m@ to be seen as a disjoint
