@@ -29,7 +29,7 @@ instance (Functor f) => MonadIdeal (Free f) where
   split (Pure x) = Left x
   split (Free f) = Right $ NonPure f
 
--- | Transform @'Free'@ to @'NonPure'@. Suceeds only if the
+-- | Transform @'Free'@ to @'NonPure'@. Succeeds only if the
 -- argument is indeed non-pure.
 toNonPure :: Free f a -> Maybe (NonPure f a)
 toNonPure (Pure a) = Nothing
