@@ -1,16 +1,22 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, DeriveFunctor, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, RankNTypes, DeriveFunctor, GeneralizedNewtypeDeriving #-}
 
 module Control.Monad.Free.NonPure
   (
     NonPure(..),
     toNonPure,
     toFree,
-    unfold
+    hoistNonPure,
+    unfoldNonPure
   )
   where
 
-import Control.Monad.Free (Free(..))
+import Prelude hiding (foldr)
+import Control.Monad.Free (Free(..), hoistFree)
 import qualified Control.Monad.Free as Free (unfold)
+import Data.Foldable (Foldable(..))
+import Data.Traversable (Traversable(..))
+import Data.Functor.Apply (Apply(..))
+import Data.Functor.Bind (Bind(..))
 
 import Control.Monad.Module
 
@@ -29,6 +35,19 @@ instance (Functor f) => MonadIdeal (Free f) where
   split (Pure x) = Left x
   split (Free f) = Right $ NonPure f
 
+instance (Functor f, Foldable f) => Foldable (NonPure f) where
+  foldMap g f = foldMap g (toFree f)
+  foldr g u f = foldr g u (toFree f)
+
+instance (Functor f, Traversable f) => Traversable (NonPure f) where
+  sequenceA (NonPure f) = fmap NonPure $ traverse sequenceA f
+
+instance (Functor f) => Apply (NonPure f) where
+  NonPure f <.> b = NonPure $ fmap (<.> toFree b) f
+
+instance (Functor f) => Bind (NonPure f) where
+  NonPure f >>- h = NonPure $ fmap (>>= toFree . h) f
+
 -- | Transform @'Free'@ to @'NonPure'@. Succeeds only if the
 -- argument is indeed non-pure.
 toNonPure :: Free f a -> Maybe (NonPure f a)
@@ -39,7 +58,11 @@ toNonPure (Free f) = Just $ NonPure f
 toFree :: NonPure f a -> Free f a
 toFree (NonPure f) = Free f
 
--- | Unfolds a @'NonPure'@ from a seed @s@.
-unfold :: (Functor f) => (s -> f (Either a s)) -> s -> NonPure f a
-unfold h s = NonPure $ fmap (Free.unfold $ fmap h) $ h s
-  
+-- | Lift a natural transformation to \"rename\" the nodes in the
+-- structure.
+hoistNonPure :: (Functor g) => (forall a. f a -> g a) -> NonPure f a -> NonPure g a
+hoistNonPure h (NonPure f) = NonPure $ fmap (hoistFree h) $ h f
+
+-- | Unfold a @'NonPure'@ from a seed @s@.
+unfoldNonPure :: (Functor f) => (s -> f (Either a s)) -> s -> NonPure f a
+unfoldNonPure h s = NonPure $ fmap (Free.unfold $ fmap h) $ h s
