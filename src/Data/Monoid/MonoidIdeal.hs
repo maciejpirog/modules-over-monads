@@ -1,5 +1,4 @@
-{-# OPTIONS_HADDOCK show-extensions #-}
-{-# LANGUAGE TypeFamilies, FlexibleInstances, DeriveFunctor #-}
+{-# LANGUAGE TypeFamilies, FlexibleInstances, DefaultSignatures, DeriveFunctor #-}
 
 {-|
 Module      : Resumption
@@ -112,11 +111,18 @@ class (Monoid r) => MonoidIdeal r where
   -- Note that we could altenratively try to use the multiplication
   -- of the semigroup
   --
-  -- * @'miappend' :: 'MIdeal' r -> 'MIdeal' r -> 'MIdeal' r@
+  -- * @'mir' :: 'MIdeal' r -> 'MIdeal' r -> 'MIdeal' r@
   --
   -- but this would lead to ambiguity in type-checking, as 'MIdeal'
   -- is not necessarily injective.
-  miappend :: MIdeal r -> r -> MIdeal r
+  mir :: MIdeal r -> r -> MIdeal r
+  -- the default implementation is a bit smelly :(
+  mir i r = fromJust $ misplit $ miembed i `mappend` r
+
+  -- | The semigroup @MIdeal r@ is also a left ideal of @r@
+  mil :: (i ~ MIdeal r) => r -> MIdeal r -> MIdeal r
+  -- the default implementation is a bit smelly :(
+  mil r i = fromJust $ misplit $ mappend r $ miembed i
 
 instance MonoidIdeal Ordering where
   type MIdeal Ordering = Bool
@@ -125,54 +131,54 @@ instance MonoidIdeal Ordering where
   misplit GT = Just True
   miembed False = LT
   miembed True  = GT
-  x `miappend` _ = x
+  x `mir` _ = x
 
 instance MonoidIdeal () where
   type MIdeal () = Void
   misplit () = Nothing
   miembed _ = ()
-  x `miappend` _ = x
+  x `mir` _ = x
 
 instance MonoidIdeal Any where
   type MIdeal Any = ()
   misplit (Any True)  = Just ()
   misplit (Any False) = Nothing
   miembed () = Any True
-  () `miappend` _ = ()
+  () `mir` _ = ()
 
 instance MonoidIdeal All where
   type MIdeal All = ()
   misplit (All False) = Just ()
   misplit (All True)  = Nothing
   miembed () = All False
-  () `miappend` _ = ()
+  () `mir` _ = ()
 
 instance MonoidIdeal [a] where
   type MIdeal [a] = NonEmpty a
   misplit []     = Nothing
   misplit (x:xs) = Just (x :| xs)
   miembed (x :| xs) = x:xs
-  (x :| xs) `miappend` ys = x :| (xs ++ ys)
+  (x :| xs) `mir` ys = x :| (xs ++ ys)
 
 instance (Monoid r) => MonoidIdeal (Maybe r) where
   type MIdeal (Maybe r) = r
   misplit x = x
   mifuse x = x
-  r `miappend` Nothing  = r
-  r `miappend` (Just a) = r `mappend` a
+  r `mir` Nothing  = r
+  r `mir` (Just a) = r `mappend` a
 
 instance MonoidIdeal (First r) where
   type MIdeal (First r) = r
   misplit (First x) = x
   miembed x = First $ Just x
-  r `miappend` _ = r
+  r `mir` _ = r
 
 instance MonoidIdeal (Last r) where
   type MIdeal (Last r) = r
   misplit (Last x) = x
   miembed x = Last $ Just x
-  r `miappend` Last Nothing  = r
-  _ `miappend` Last (Just x) = x
+  r `mir` Last Nothing  = r
+  _ `mir` Last (Just x) = x
 
 instance MonoidIdeal (Sum Word) where
   type MIdeal (Sum Word) = Word
@@ -180,8 +186,8 @@ instance MonoidIdeal (Sum Word) where
   misplit (Sum x) = Just x
   miembed 0 = error ""
   miembed x = Sum x
-  0 `miappend` _     = error ""
-  x `miappend` Sum y = x + y
+  0 `mir` _     = error ""
+  x `mir` Sum y = x + y
 
 -- $prods
 -- Monoids have products, that is, if @a@ and @b@ are monoids,
@@ -211,7 +217,7 @@ instance (MonoidIdeal a, MonoidIdeal b) => MonoidIdeal (a, b) where
   miembed (MLeft  a)   = (miembed a, mempty)
   miembed (MRight b)   = (mempty, miembed b)
   miembed (MBoth  a b) = (miembed a, miembed b)
-  m `miappend` (x, y) =
+  m `mir` (x, y) =
     fromJust $ misplit (a `mappend` x, b `mappend` y)
       where
        (a, b) = miembed m

@@ -53,13 +53,13 @@ source-repository head
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Data.Monoid.MonoidIdeal, Control.Monad.Module, Control.Monad.Module.Resumption, Control.Monad.Module.Instances, Control.Monad.Module.IdealCoproduct, Control.Monad.Free.NonPure
+  exposed-modules:     Data.Monoid.MonoidIdeal, Control.Monad.Module, Control.Monad.Module.Resumption, Control.Monad.Module.IdealCoproduct, Control.Monad.Free.NonPure, Data.List.AtLeast2
   
   -- Modules included in this library but not exported.
   -- other-modules:       
   
   -- Other library packages from which modules are imported.
-  build-depends:       base ==4.5.*, void ==0.7.*, semigroups ==0.16.*, semigroupoids==5.0.*, free ==4.12.*, mtl ==2.2.*, transformers ==0.4.*
+  build-depends:       base ==4.5.*, void ==0.7.*, semigroups ==0.16.*, semigroupoids==5.0.*, free ==4.12.*, mtl ==2.2.*, transformers ==0.4.*, kan-extensions==4.2.*
   
   -- Directories containing source files.
   hs-source-dirs:      src

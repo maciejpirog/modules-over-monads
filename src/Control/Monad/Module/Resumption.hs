@@ -45,7 +45,6 @@ import Control.Monad.Identity (Identity(..))
 import Data.Functor.Compose (Compose(..))
 
 import Control.Monad.Module
-import Control.Monad.Module.Instances
 import Control.Monad.Free.NonPure hiding (unfoldNonPure)
 
 -- | The generalised resumption monad is a composition of a monad
