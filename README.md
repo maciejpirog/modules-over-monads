@@ -1,5 +1,5 @@
-"Modules over Monads" Haskell library
-=====================================
+modules-over-monads Haskell library
+===================================
 
 A Haskell library for modules over monads, idealised monads, and ideal monads. It implements the following:
 
