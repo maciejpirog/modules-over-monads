@@ -11,7 +11,3 @@ A Haskell library for modules over monads, idealised monads, and ideal monads. I
 
 * Coproducts of Ideal monads N. Ghani, T. Uustalu *Coproducts of ideal monads* <http://www.cs.ioc.ee/~tarmo/papers/fics03-tia.pdf>.
 
-Dependencies
-------------
-
-`void`, `mtl`, `transformers`, `semigroups`, `free`
