@@ -1,5 +1,16 @@
 {-# LANGUAGE TypeFamilies, MultiParamTypeClasses, RankNTypes, DeriveFunctor, GeneralizedNewtypeDeriving #-}
 
+{-|
+Module      : Control.Monad.Free.NonPure
+Copyright   : (c) 2015 Maciej Piróg
+License     : MIT
+Maintainer  : maciej.adam.pirog@gmail.com
+Stability   : experimental
+
+Generalised resumption monad a la M. Piróg, N. Wu, J. Gibbons
+/Modules over monads and their algebras/
+<https://coalg.org/calco15/papers/p18-Piróg.pdf>.
+-}
 module Control.Monad.Free.NonPure
   (
     NonPure(..),

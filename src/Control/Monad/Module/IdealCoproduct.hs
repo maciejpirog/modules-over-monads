@@ -1,8 +1,7 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleContexts, FlexibleInstances, RankNTypes #-}
+{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, StandaloneDeriving #-}
 
 {-|
-Module      : IdealCoproduct
-Description : Coproduct of ideal monads
+Module      : Control.Monad.Module.IdealCoproduct
 Copyright   : (c) 2015 Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
@@ -17,8 +16,8 @@ module Control.Monad.Module.IdealCoproduct
   (
     Turns(..),
     IdealCoproduct(..),
-    sym,
     AmbiTurns(..),
+    sym,
     liftl,
     liftr,
     foldTurns,
@@ -28,8 +27,12 @@ module Control.Monad.Module.IdealCoproduct
   )
   where
 
-import Control.Applicative(Applicative(..))
+import Control.Applicative(Applicative(..), (<$>))
 import Control.Monad(ap)
+import Data.Foldable (Foldable(..))
+import Data.Traversable (Traversable(..))
+import Data.Functor.Apply (Apply(..))
+import Data.Functor.Bind (Bind(..))
 
 import Control.Monad.Module
 
@@ -46,6 +49,15 @@ instance (Functor t, Functor h) => Functor (Turns t h) where
     aux (Left  x) = Left  $ f x
     aux (Right y) = Right $ fmap f y
 
+instance (Functor t, Functor h, Foldable t, Foldable h) => Foldable (Turns t h) where
+  foldMap f (Turns h) = foldMap id $ fmap (either f (foldMap f)) h
+
+instance (Traversable t, Traversable h) => Traversable (Turns t h) where
+  traverse f (Turns h) = fmap Turns $ traverse aux h
+   where
+    aux (Left a)  = Left <$> f a
+    aux (Right t) = Right <$> traverse f t
+
 -- | The coproduct (a disjoint sum in the category of ideal monads)
 -- of ideal monads @m@ and @n@. Each value consists of alternating
 -- layers of the ideals of @m@ and @n@ with variables of the type
@@ -55,22 +67,16 @@ data IdealCoproduct m n a =
   | ICLeft  (Turns (Ideal m) (Ideal n) a)
   | ICRight (Turns (Ideal n) (Ideal m) a)
 
--- | Swap the 'ICLeft' and 'ICRight' constructors. The function 'sym' is an involution, that is, @sym . sym = id@.
-sym :: IdealCoproduct m n a -> IdealCoproduct n m a
-sym (ICVar   a) = ICVar   a
-sym (ICLeft  a) = ICRight a
-sym (ICRight a) = ICLeft  a
-
 toM :: (MonadIdeal m, MonadIdeal n) => IdealCoproduct m n a -> m (Either a (Turns (Ideal n) (Ideal m) a))
 toM (ICVar   a) = return $ Left a
 toM (ICLeft  i) = embed  $ unTurns i
 toM (ICRight i) = return $ Right i
 
-(|>>-) :: (MonadIdeal m, MonadIdeal n) => Turns (Ideal m) (Ideal n) a -> (a -> IdealCoproduct m n b) -> Turns (Ideal m) (Ideal n) b
-Turns x |>>- f = Turns $ x |>>= aux
+(|>-) :: (MonadIdeal m, MonadIdeal n) => Turns (Ideal m) (Ideal n) a -> (a -> IdealCoproduct m n b) -> Turns (Ideal m) (Ideal n) b
+Turns x |>- f = Turns $ x |>>= aux
  where
   aux (Left  a) = toM (f a)
-  aux (Right i) = return $ Right $ i |>>- (sym . f)
+  aux (Right i) = return $ Right $ i |>- (sym . f)
 
 instance (Functor (Ideal m), Functor (Ideal n)) => Functor (IdealCoproduct m n) where
   fmap f (ICVar   a) = ICVar   $ f a
@@ -80,34 +86,79 @@ instance (Functor (Ideal m), Functor (Ideal n)) => Functor (IdealCoproduct m n) 
 instance (MonadIdeal m, MonadIdeal n) => Monad (IdealCoproduct m n) where
   return = ICVar
   ICVar   a >>= f = f a
-  ICLeft  i >>= f = ICLeft  $ i |>>- f
-  ICRight i >>= f = ICRight $ i |>>- (sym . f)
+  ICLeft  i >>= f = ICLeft  $ i |>- f
+  ICRight i >>= f = ICRight $ i |>- (sym . f)
+
+instance (MonadIdeal m, MonadIdeal n) => Bind (IdealCoproduct m n) where
+  (>>-) = (>>=)
 
 instance (MonadIdeal m, MonadIdeal n) => Applicative (IdealCoproduct m n) where
   pure = return
   (<*>) = ap
 
--- | The ideal of 'IdealCoproduct'.
-newtype AmbiTurns h t a = AmbiTurns 
-  { unAmbiTurns :: (Either (Turns h t a) (Turns t h a)) }
+instance (MonadIdeal m, MonadIdeal n) => Apply (IdealCoproduct m n) where
+  (<.>) = (<*>)
 
-instance (Functor h, Functor t) => Functor (AmbiTurns h t) where
+instance (MonadIdeal m, MonadIdeal n, Foldable (Ideal m), Foldable (Ideal n)) => Foldable (IdealCoproduct m n) where
+  foldMap f (ICVar a)   = f a
+  foldMap f (ICLeft i)  = foldMap f i
+  foldMap f (ICRight i) = foldMap f i
+
+instance (MonadIdeal m, MonadIdeal n, Traversable (Ideal m), Traversable (Ideal n)) => Traversable (IdealCoproduct m n) where
+  traverse f (ICVar a)   = ICVar   <$> f a
+  traverse f (ICLeft i)  = ICLeft  <$> traverse f i
+  traverse f (ICRight i) = ICRight <$> traverse f i
+
+-- | The ideal of 'IdealCoproduct'.
+newtype AmbiTurns m n a = AmbiTurns 
+  { unAmbiTurns :: (Either (Turns (Ideal m) (Ideal n) a) (Turns (Ideal n) (Ideal m) a)) }
+
+instance (MonadIdeal m, MonadIdeal n) => Functor (AmbiTurns m n) where
   fmap f (AmbiTurns (Left  i)) = AmbiTurns $ Left  $ fmap f i
   fmap f (AmbiTurns (Right i)) = AmbiTurns $ Right $ fmap f i
 
+instance (MonadIdeal m, MonadIdeal n, Foldable (Ideal m), Foldable (Ideal n)) => Foldable (AmbiTurns m n) where
+  foldMap f = foldMap f .
+    (embed :: AmbiTurns m n a -> IdealCoproduct m n a)
+    --     ^ This is where scoped type variables come in handy!
+
+instance (MonadIdeal m, MonadIdeal n, Traversable (Ideal m), Traversable (Ideal n)) => Traversable (AmbiTurns m n) where
+  traverse f (AmbiTurns (Left i))  = (AmbiTurns . Left)  <$> traverse f i
+  traverse f (AmbiTurns (Right i)) = (AmbiTurns . Right) <$> traverse f i
+
+instance (MonadIdeal m, MonadIdeal n) => Apply (AmbiTurns m n) where
+  AmbiTurns (Left t)  <.> u = AmbiTurns $ Left  $ t |>- (\f ->
+    (embed :: AmbiTurns m n a -> IdealCoproduct m n a) u
+      >>= return . f)
+  AmbiTurns (Right t) <.> u = AmbiTurns $ Right $ t |>- (\f ->
+    sym ((embed :: AmbiTurns m n a -> IdealCoproduct m n a) u)
+      >>= return . f)
+
+instance (MonadIdeal m, MonadIdeal n) => Bind (AmbiTurns m n) where
+  AmbiTurns (Left t)  >>- f = AmbiTurns $ Left  $ t |>-
+    ((embed :: AmbiTurns m n a -> IdealCoproduct m n a) . f)
+  AmbiTurns (Right t) >>- f = AmbiTurns $ Right $ t |>-
+    (sym . (embed :: AmbiTurns m n a -> IdealCoproduct m n a) . f)
+
+instance (MonadIdeal m, MonadIdeal n) => RModule (IdealCoproduct m n) (AmbiTurns m n) where
+  AmbiTurns (Left  i) |>>= f = AmbiTurns $ Left  $ i |>- f
+  AmbiTurns (Right i) |>>= f = AmbiTurns $ Right $ i |>- (sym . f)
+
+instance (MonadIdeal m, MonadIdeal n) => Idealised (IdealCoproduct m n) (AmbiTurns m n) where
+  embed (AmbiTurns (Left  i)) = ICLeft  i
+  embed (AmbiTurns (Right i)) = ICRight i  
+
 instance (MonadIdeal m, MonadIdeal n) => MonadIdeal (IdealCoproduct m n) where
-  type Ideal (IdealCoproduct m n) = AmbiTurns (Ideal m) (Ideal n)
+  type Ideal (IdealCoproduct m n) = AmbiTurns m n
   split (ICVar   a) = Left a
   split (ICLeft  i) = Right $ AmbiTurns $ Left  i
   split (ICRight i) = Right $ AmbiTurns $ Right i
 
-instance (MonadIdeal m, MonadIdeal n, i ~ AmbiTurns (Ideal m) (Ideal n)) => RModule (IdealCoproduct m n) i where
-  AmbiTurns (Left  i) |>>= f = AmbiTurns $ Left  $ i |>>- f
-  AmbiTurns (Right i) |>>= f = AmbiTurns $ Right $ i |>>- (sym . f)
-
-instance (MonadIdeal m, MonadIdeal n, i ~ AmbiTurns (Ideal m) (Ideal n)) => Idealised (IdealCoproduct m n) i where
-  embed (AmbiTurns (Left  i)) = ICLeft  i
-  embed (AmbiTurns (Right i)) = ICRight i  
+-- | Swap the 'ICLeft' and 'ICRight' constructors. The function 'sym' is an involution, that is, @sym . sym = id@.
+sym :: IdealCoproduct m n a -> IdealCoproduct n m a
+sym (ICVar   a) = ICVar   a
+sym (ICLeft  a) = ICRight a
+sym (ICRight a) = ICLeft  a
 
 -- | Lift an ideal monad @m@ to @IdealCoproduct m n@. The function
 -- 'inl' respects the equations of the 'MonadTrans' class, that is:

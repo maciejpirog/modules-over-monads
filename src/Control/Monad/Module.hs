@@ -1,9 +1,7 @@
 {-# LANGUAGE TypeFamilies, FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, TypeOperators #-}
 
 {-|
-Module      : Module
-Description : Left and right modules over monads, idealised and
-              ideal monads
+Module      : Control.Monad.Module
 Copyright   : (c) 2015 Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com

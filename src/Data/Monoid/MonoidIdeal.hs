@@ -1,8 +1,7 @@
 {-# LANGUAGE TypeFamilies, FlexibleInstances, DefaultSignatures, DeriveFunctor #-}
 
 {-|
-Module      : Resumption
-Description : Ideal monoids (semigroups with freely adjoined unit)
+Module      : Data.Monoid.MonoidIdeal
 Copyright   : (c) 2015 Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
@@ -120,7 +119,7 @@ class (Monoid r) => MonoidIdeal r where
   mir i r = fromJust $ misplit $ miembed i `mappend` r
 
   -- | The semigroup @MIdeal r@ is also a left ideal of @r@
-  mil :: (i ~ MIdeal r) => r -> MIdeal r -> MIdeal r
+  mil :: r -> MIdeal r -> MIdeal r
   -- the default implementation is a bit smelly :(
   mil r i = fromJust $ misplit $ mappend r $ miembed i
 

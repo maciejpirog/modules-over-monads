@@ -1,8 +1,7 @@
 {-# LANGUAGE TypeFamilies, MultiParamTypeClasses, DeriveFunctor #-}
 
 {-|
-Module      : AtLest2
-Description : Lists with at least 2 elements
+Module      : Data.List.AtLeast2
 Copyright   : (c) 2015 Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
