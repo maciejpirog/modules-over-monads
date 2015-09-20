@@ -7,9 +7,9 @@ License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
 Stability   : experimental
 
-Generalised resumption monad a la M. Piróg, N. Wu, J. Gibbons
-/Modules over monads and their algebras/
-<https://coalg.org/calco15/papers/p18-Piróg.pdf>.
+The @'NonPure'@ datatype behaves like a free monad with at least
+one layer of structure. It is not a @'Monad'@ (there is no way to
+define @'return'@) but it is a @'Bind'@.
 -}
 module Control.Monad.Free.NonPure
   (
