@@ -36,7 +36,7 @@ module Control.Monad.Module.Resumption
     hoistMoggiR,
     unfoldMoggiR,
     RRRResumption(..),
-    runRRRR
+    retractRRRR
   )
   where
 
@@ -264,5 +264,5 @@ unfoldMoggiR f = MoggiR . unfoldResumption (liftM (fmap toFM) . f)
 type RRRResumption = MoggiResumption Identity
 
 -- | Run a resumption as a single computation
-runRRRR :: (Functor m, Monad m) => RRRResumption m a -> m a
-runRRRR = interpMoggiR (return . runIdentity) id
+retractRRRR :: (Functor m, Monad m) => RRRResumption m a -> m a
+retractRRRR = interpMoggiR (return . runIdentity) id

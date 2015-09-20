@@ -11,3 +11,9 @@ A Haskell library for modules over monads, idealised monads, and ideal monads. I
 
 * Coproducts of Ideal monads N. Ghani, T. Uustalu *Coproducts of ideal monads* <http://www.cs.ioc.ee/~tarmo/papers/fics03-tia.pdf>.
 
+TODO List
+---------
+
+* More class instances
+
+* Comodules over Comonads, Coresumptions, Products of ideal comonads

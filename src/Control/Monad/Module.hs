@@ -24,7 +24,9 @@ module Control.Monad.Module
     -- * Idealised and ideal monads
     Idealised(..),
     MonadIdeal(..),
-    fuse
+    fuse,
+    restriction,
+    extension
   )
   where
 
@@ -129,6 +131,19 @@ fuse :: (MonadIdeal m) => Either a (Ideal m a) -> m a
 fuse (Left  a) = return a
 fuse (Right r) = embed r
 
+-- | Restrict an ideal monad morphism (= monad morphism that
+-- preserves @'split'@ to the ideal.
+restriction :: (MonadIdeal m, MonadIdeal n) => (m a -> n a) -> (Ideal m a -> Ideal n a)
+restriction f = aux . split . f . embed
+ where
+  aux (Right i) = i
+  aux (Left _)  = error "not an ideal monad morphism"
+
+-- | Extend the morphism of ideals to the whole monad.
+extension :: (MonadIdeal m, MonadIdeal n) => (Ideal m a -> Ideal n a) -> m a -> n a
+extension f m = case split m of
+                  Left a  -> return a
+                  Right i -> embed $ f i
 --
 -- R-INSTANCES
 --
