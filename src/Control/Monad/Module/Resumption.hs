@@ -1,4 +1,12 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleInstances, RankNTypes, DeriveFunctor, ScopedTypeVariables, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE 
+      TypeFamilies,
+      MultiParamTypeClasses,
+      FlexibleInstances,
+      RankNTypes,
+      DeriveFunctor,
+      ScopedTypeVariables,
+      GeneralizedNewtypeDeriving
+ #-}
 
 {-|
 Module      : Control.Monad.Module.Resumption
@@ -42,7 +50,8 @@ module Control.Monad.Module.Resumption
 
 import Control.Applicative (Applicative(..), WrappedMonad(..))
 import Control.Monad (ap, liftM)
-import Control.Monad.Free (Free(..), iter, foldFree, liftF, hoistFree)
+import Control.Monad.Free (Free(..), iter, foldFree, liftF,
+                            hoistFree)
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.Identity (Identity(..))
 import Data.Functor.Apply (Apply(..))
@@ -66,7 +75,8 @@ newtype Resumption m r a =
 instance (Monad m, Functor r) => Functor (Resumption m r) where
   fmap h (Resumption m) = Resumption $ liftM (fmap h) m
 
-ext :: (RModule m r) => (a -> Resumption m r b) -> Free r a -> m (Free r b)
+ext :: (RModule m r) => (a -> Resumption m r b) -> Free r a ->
+  m (Free r b)
 ext f (Pure a) = unResumption $ f a
 ext f (Free r) = return $ Free $ r |>>= ext f
 
@@ -84,11 +94,16 @@ instance (RModule m r) => Apply (Resumption m r) where
 instance (RModule m r) => Bind (Resumption m r) where
   (>>-) = (>>=)
 
-instance (Foldable m, Foldable r, RModule m r) => Foldable (Resumption m r) where
+instance (Foldable m, Foldable r, RModule m r) =>
+  Foldable (Resumption m r)
+ where
   foldMap f (Resumption m) = foldMap id $ liftM (foldMap f) m
 
-instance (RModule m r, Traversable m, Traversable r) => Traversable (Resumption m r) where
-  traverse f (Resumption m) = fmap Resumption $ sequenceA $ liftM (traverse f) m
+instance (RModule m r, Traversable m, Traversable r) =>
+  Traversable (Resumption m r)
+ where
+  traverse f (Resumption m) =
+    fmap Resumption $ sequenceA $ liftM (traverse f) m
 
 --
 -- MNONPURE
@@ -100,11 +115,15 @@ newtype MNonPure m r a = MNonPure { unMNonPure :: m (NonPure r a) }
 instance (Monad m, Functor r) => Functor (MNonPure m r) where
   fmap h (MNonPure m) = MNonPure $ liftM (fmap h) m
 
-instance (RModule m r) => RModule (Resumption m r) (MNonPure m r) where
-   MNonPure m |>>= f = MNonPure $
-     liftM (\(NonPure r) -> NonPure $ r |>>= ext f) m
+instance (RModule m r) =>
+  RModule (Resumption m r) (MNonPure m r)
+ where
+  MNonPure m |>>= f = MNonPure $ 
+    liftM (\(NonPure r) -> NonPure $ r |>>= ext f) m
 
-instance (RModule m r) => Idealised (Resumption m r) (MNonPure m r) where
+instance (RModule m r) =>
+  Idealised (Resumption m r) (MNonPure m r)
+ where
   embed (MNonPure m) = Resumption $ liftM (Free . unNonPure) m
 
 instance (RModule m r) => Apply (MNonPure m r) where
@@ -116,10 +135,14 @@ instance (RModule m r) => Bind (MNonPure m r) where
   np >>- f = np |>>=
     ((embed :: MNonPure m r a -> Resumption m r a) . f)
 
-instance (Foldable m, Foldable r, RModule m r) => Foldable (MNonPure m r) where
+instance (Foldable m, Foldable r, RModule m r) =>
+  Foldable (MNonPure m r)
+ where
   foldMap f (MNonPure m) = foldMap id $ liftM (foldMap f) m
 
-instance (RModule m r, Traversable m, Traversable r) => Traversable (MNonPure m r) where
+instance (RModule m r, Traversable m, Traversable r) =>
+  Traversable (MNonPure m r)
+ where
   traverse f (MNonPure m) = fmap MNonPure $ traverse (traverse f) m
 
 --
@@ -138,23 +161,29 @@ liftr = Resumption . return . Free . fmap Pure
 
 -- | Fold the structure of a resumption using an @m@-algebra and
 -- and @r@-algebra.
-foldResumption :: (Monad m, Functor r) => (m a -> a) -> (r a -> a) -> Resumption m r a -> a
+foldResumption :: (Monad m, Functor r) => (m a -> a) ->
+  (r a -> a) -> Resumption m r a -> a
 foldResumption f g (Resumption m) = f $ liftM (iter g) m
 
 -- | Fold the structure of a resumption by interpreting each layer
 -- as a computation in a monad @k@ and then @'join'@-ing the
 -- layers.
-interpResumption :: (Functor k, Monad k) => (forall a. m a -> k a) -> (forall a. r a -> k a) -> Resumption m r a -> k a
+interpResumption :: (Functor k, Monad k) =>
+  (forall a. m a -> k a) -> (forall a. r a -> k a) ->
+  Resumption m r a -> k a
 interpResumption f g (Resumption m) = f m >>= foldFree g
 
 -- | Run a monad morphism and a natural transformation (a module
 -- morphism) through the structure.
-hoistResumption :: (RModule m r, RModule n s) => (forall a. m a -> n a) -> (forall a. r a -> s a) -> Resumption m r a -> Resumption n s a
+hoistResumption :: (RModule m r, RModule n s) =>
+  (forall a. m a -> n a) -> (forall a. r a -> s a) ->
+  Resumption m r a -> Resumption n s a
 hoistResumption h g (Resumption m) =
   Resumption $ h $ liftM (hoistFree g) m
 
 -- | Unfold structure step-by-step.
-unfoldResumption :: (RModule m r) => (s -> m (Either a (r s))) -> s -> Resumption m r a
+unfoldResumption :: (RModule m r) => (s -> m (Either a (r s))) ->
+  s -> Resumption m r a
 unfoldResumption f s = Resumption $ liftM aux $ f s
  where
   aux (Left a)  = Pure a
@@ -191,10 +220,14 @@ instance (Functor f, Monad m) => Functor (FM f m) where
 instance (Functor f, Monad m) => RModule m (FM f m) where
   FM f |>>= g = FM $ fmap (>>= g) f
 
-instance (Functor f, Monad m, Foldable f, Foldable m) => Foldable (FM f m) where
+instance (Functor f, Monad m, Foldable f, Foldable m) =>
+  Foldable (FM f m)
+ where
   foldMap h = foldMap id . fmap (foldMap h) . unFM
 
-instance (Monad m, Traversable f, Traversable m) => Traversable (FM f m) where
+instance (Monad m, Traversable f, Traversable m) =>
+  Traversable (FM f m)
+ where
   traverse h (FM f) = fmap FM $ traverse (traverse h) f
 
 --
@@ -206,25 +239,34 @@ newtype MoggiResumption f m a =
   MoggiR { unMoggiR :: Resumption m (FM f m) a}
  deriving (Functor, Monad, Applicative, Apply, Bind)
 
-instance (Monad m, Functor f, Foldable f, Foldable m) => Foldable (MoggiResumption f m) where
-  foldMap h (MoggiR (Resumption m)) = foldMap id $ liftM (foldMap h) m
+instance (Monad m, Functor f, Foldable f, Foldable m) =>
+  Foldable (MoggiResumption f m)
+ where
+  foldMap h (MoggiR (Resumption m)) =
+    foldMap id $ liftM (foldMap h) m
 
-instance (Monad m, Traversable f, Traversable m) => Traversable (MoggiResumption f m) where
+instance (Monad m, Traversable f, Traversable m) =>
+  Traversable (MoggiResumption f m)
+ where
   traverse h (MoggiR r) = fmap MoggiR $ traverse h r
 
 instance (Functor f) => MonadTrans (MoggiResumption f) where
   lift = MoggiR . liftm
 
--- | Get one level of computation out of a resumption. Inverse of @'hold'@.
-force :: (Functor f, Monad m) => MoggiResumption f m a -> m (Either a (f (MoggiResumption f m a)))
+-- | Get one level of computation out of a resumption. Inverse of
+-- @'hold'@.
+force :: (Functor f, Monad m) => MoggiResumption f m a ->
+  m (Either a (f (MoggiResumption f m a)))
 force (MoggiR (Resumption m)) = liftM aux m
  where
   aux (Pure a) = Left a 
   aux (Free (FM f)) =
     Right $ fmap (MoggiR . Resumption) f
  
--- | Hold a computation and store it in a resumption. Inverse of @'force'@.
-hold :: (Functor f, Monad m) => m (Either a (f (MoggiResumption f m a))) -> MoggiResumption f m a
+-- | Hold a computation and store it in a resumption. Inverse of
+-- @'force'@.
+hold :: (Functor f, Monad m) =>
+  m (Either a (f (MoggiResumption f m a))) -> MoggiResumption f m a
 hold m = MoggiR $ Resumption $ liftM aux m
  where
   aux (Left a)  = Pure a
@@ -236,27 +278,34 @@ toFM = FM . fmap return
 foldFM :: (Functor f) => (f a -> a) -> (m a -> a) -> FM f m a -> a
 foldFM g h (FM f) = g $ fmap h f
 
--- | Fold the structure of a Moggi resumption using an @f@-algebra and an @m@-algebra.
-foldMoggiR :: (Functor f, Monad m) => (f a -> a) -> (m a -> a) -> MoggiResumption f m a -> a
+-- | Fold the structure of a Moggi resumption using an @f@-algebra
+-- and an @m@-algebra.
+foldMoggiR :: (Functor f, Monad m) => (f a -> a) -> (m a -> a) ->
+  MoggiResumption f m a -> a
 foldMoggiR g h = foldResumption h (foldFM g h) . unMoggiR
 
-interpFM :: (Monad k) => (forall a. f a -> k a) -> (forall a. m a -> k a) -> FM f m a -> k a 
+interpFM :: (Monad k) => (forall a. f a -> k a) ->
+  (forall a. m a -> k a) -> FM f m a -> k a 
 interpFM g h (FM f) = g f >>= h
 
 -- | Fold the structure of a resumption by interpreting each layer
 -- as a computation in a monad @k@ and then @'join'@-ing the
 -- layers.
-interpMoggiR :: (Functor k, Monad k) => (forall a. f a -> k a) -> (forall a. m a -> k a) -> MoggiResumption f m a -> k a
+interpMoggiR :: (Functor k, Monad k) => (forall a. f a -> k a) ->
+  (forall a. m a -> k a) -> MoggiResumption f m a -> k a
 interpMoggiR g h = interpResumption h (interpFM g h) . unMoggiR
 
 -- | Run a monad morphism and (any) natural transformation through 
 -- the structure.
-hoistMoggiR :: (Functor f, Functor t, Monad m, Monad n) => (forall a. f a -> t a) -> (forall a. m a -> n a) -> MoggiResumption f m a -> MoggiResumption t n a
+hoistMoggiR :: (Functor f, Functor t, Monad m, Monad n) =>
+  (forall a. f a -> t a) -> (forall a. m a -> n a) ->
+  MoggiResumption f m a -> MoggiResumption t n a
 hoistMoggiR g h (MoggiR r) = MoggiR $
   hoistResumption h (FM . g . fmap h . unFM) r
 
 -- | Unfold structure step-by-step.
-unfoldMoggiR :: (Functor f, Monad m) => (s -> m (Either a (f s))) -> s -> MoggiResumption f m a
+unfoldMoggiR :: (Functor f, Monad m) =>
+  (s -> m (Either a (f s))) -> s -> MoggiResumption f m a
 unfoldMoggiR f = MoggiR . unfoldResumption (liftM (fmap toFM) . f)
 
 -- | A wrapper for resumptions based on the right-regular
