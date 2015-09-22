@@ -35,20 +35,19 @@ adjoint to the forgetful functor from the category of monoids to
 the category of semigroups.
 
 /A note on implementation:/
-One way to implement ideal monoids is to explicitly state the
-\"abstract nonsense\" approach and say that an ideal monoid is a
-disjoint sum of a semigroup and a \"unit\", that is, it is the
+One way to implement ideal monoids is to say that an ideal monoid
+is a disjoint sum of a semigroup and a \"unit\", that is, it is the
 familiar monoid instance:
 
 @ ('Semigroup' s) => 'Monoid' ('Maybe' s) @
 
 However, we want to treat /being/ an ideal monoid as a property of
 a monoid, not necessarily construct it explicitly as a @'Maybe s'@ 
-from a semigroup @'s'@. That is, we want a @'Monoid'@ subcalss,
-which we call @'MonoidIdeal'@. Each instance @'MonoidIdeal' m@
-contains a type of the ideal (@'MIdeal' m@), and functions
-(necessarily isomorphisms) that allow @m@ to be seen as a disjoint
-sum of @'MIdeal' m@ and the adjoined unit.
+from a semigroup @'s'@. That is, we introduce a @'Monoid'@
+subcalss, which we call @'MonoidIdeal'@. Each instance
+@'MonoidIdeal' m@ contains a type of the ideal (@'MIdeal' m@), and 
+functions (necessarily isomorphisms) that allow @m@ to be seen as a
+disjoint sum of @'MIdeal' m@ and the adjoined unit.
 -}
 
 module Data.Monoid.MonoidIdeal

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE TypeFamilies, FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, TypeOperators, TupleSections #-}
 
 {-|
 Module      : Control.Monad.Module
@@ -195,11 +195,17 @@ instance MonadIdeal (Either e) where
   split (Left  e) = Right $ Const e
   split (Right a) = Left  a
 
--- Reader + Writer
+-- Reader + Pair
 
+{-
 instance RModule (Reader s) (Writer s) where
   w |>>= f = WriterT $ Identity $ (runReader (f a) s, s)
    where (a, s)  = runWriter w
+-}
+
+instance (RModule m r) => RModule (ReaderT s m) (WriterT s r) where
+  WriterT r |>>= f =
+    WriterT $ r |>>= (\(a, s) -> liftM (, s) $ runReaderT (f a) s)
 
 -- State + Writer
 

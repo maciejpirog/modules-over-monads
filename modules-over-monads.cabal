@@ -18,7 +18,7 @@ stability:           experimental
 synopsis:            Modules over monads, idealised monads, ideal monads, resumptions
 
 -- A longer description of the package.
-description:         A module over a monad is a data type that Kleisli-compose with the monad, but not necessarily with itself. Modules allow to define "monadic computations in context" or "subsets" of the effects implemented by the monad.
+description:         A module over a monad is a data type that Kleisli-compose with the monad, but not necessarily with itself. Modules allow to define monadic computations in context or \"subsets\" of the effects implemented by a monad.
 
 -- URL for the project homepage or repository.
 homepage:            https://github.com/maciejpirog/modules
@@ -53,7 +53,7 @@ source-repository head
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Data.Monoid.MonoidIdeal, Control.Monad.Module, Control.Monad.Module.Resumption, Control.Monad.Module.IdealCoproduct, Control.Monad.Free.NonPure, Data.List.AtLeast2
+  exposed-modules:     Data.Monoid.MonoidIdeal, Control.Monad.Module, Control.Monad.Module.Resumption, Control.Monad.Module.IdealCoproduct, Control.Monad.Free.NonPure, Data.List.AtLeast2, Control.Monad.State.AllStates
   
   -- Modules included in this library but not exported.
   -- other-modules:       
