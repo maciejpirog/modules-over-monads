@@ -155,7 +155,8 @@ instance (MonadIdeal m, MonadIdeal n, Traversable (Ideal m), Traversable (Ideal 
   traverse f (ICLeft i)  = ICLeft  <$> traverse f i
   traverse f (ICRight i) = ICRight <$> traverse f i
 
--- | The ideal of 'IdealCoproduct'.
+-- | The ideal of 'IdealCoproduct'. (See also
+-- <https://www.youtube.com/watch?v=8hJ1HDcMowk>)
 newtype AmbiTurns m n a = AmbiTurns 
   { unAmbiTurns :: (Either (Turns (Ideal m) (Ideal n) a) (Turns (Ideal n) (Ideal m) a)) }
 
