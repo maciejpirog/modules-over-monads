@@ -23,8 +23,7 @@ module Control.Monad.State.AllStates
   where
 
 import Control.Applicative (Applicative, WrappedMonad(..))
-import Control.Monad
---import Control.Monad (liftM, join)
+import Control.Monad (liftM)
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.Identity (Identity(..))
 import Control.Monad.Reader (ReaderT(..))
@@ -33,21 +32,31 @@ import Control.Monad.State (MonadState(..), StateT(..))
 import Control.Monad.Free (Free(..), liftF)
 import Data.Functor.Apply (Apply)
 import Data.Functor.Bind (Bind)
-import Data.Monoid (Last(..))
 
 import Control.Monad.Module.Resumption (Resumption(..), liftm)
 
 -- | A monad transformer that acts like @'StateT'@, but it also
 -- records every intermediate state in a (possibly infinite!)
 -- stream. If the stream is finite, it is terminated with the
--- final value.
+-- final value of type @a@.
 --
--- Modulo @newtype@ constructors, it is equal to
+-- The @'AllStatesT'@ transformer is the resumption monad generated
+-- by the fact that @'WriterT s r'@ (understood as a functor, not a
+-- monad!) is a right module over @'ReaderT s m'@ if @r@ is a right
+-- module over @m@. This means that, modulo @newtype@ constructors,
+-- it is equal to:
 --
 -- @
 -- F m s x = m (x, s)
 -- AllStatesT s m a = s -> m ('Free' (F m s) a)
 -- @
+--
+-- Note that the stream (that is, the @'Free'@ part of the
+-- datatype) could be empty
+-- (e.g.
+-- @'AllStatesT' $ 'Resumption' $ 'ReaderT' $ \s -> 'return' 2@),
+-- which means that the computation does not produce a new state.
+-- Such a value is a pure computation.
 newtype AllStatesT s m a = AllStatesT { runAllStatesT ::
   Resumption (ReaderT s m) (WriterT s (WrappedMonad m)) a }
  deriving(Functor, Applicative, Monad, Apply, Bind)
@@ -69,11 +78,10 @@ instance (Monad m) => MonadState s (AllStatesT s m) where
 -- | Forget the intermediate states. It is a monad morphism.
 allToState :: (Monad m) => AllStatesT s m a -> StateT s m a
 allToState (AllStatesT (Resumption (ReaderT r))) =
-  StateT $ \s -> join $ liftM (aux s) $ r s
+  StateT $ \s -> r s >>= aux s
  where
   aux s (Pure a)                       = return (a, s)
-  aux s (Free (WriterT (WrapMonad m))) =
-    join $ liftM (\(f, s') -> aux s' f) m
+  aux s (Free (WriterT (WrapMonad m))) = m >>= \(f, s') -> aux s' f
 
 -- | Lift @'StateT'@ to @'AllStatesT'@. It is NOT a monad morphism.
 stateToAll :: (Monad m) => StateT s m a -> AllStatesT s m a

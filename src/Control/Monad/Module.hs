@@ -34,7 +34,7 @@ import Control.Monad (liftM)
 import Control.Applicative (Const(..), WrappedMonad(..))
 import Control.Monad.Identity (Identity(..))
 import Control.Monad.Free (Free(..))
-import Control.Monad.State (State(..), runState)
+import Control.Monad.State (StateT(..), State(..), runState)
 import Control.Monad.Reader (Reader, runReader, ReaderT(..))
 import Control.Monad.Writer (Writer, runWriter, WriterT(..))
 import Control.Monad.Codensity (Codensity(..))
@@ -195,13 +195,7 @@ instance MonadIdeal (Either e) where
   split (Left  e) = Right $ Const e
   split (Right a) = Left  a
 
--- Reader + Pair
-
-{-
-instance RModule (Reader s) (Writer s) where
-  w |>>= f = WriterT $ Identity $ (runReader (f a) s, s)
-   where (a, s)  = runWriter w
--}
+-- Reader + Writer
 
 instance (RModule m r) => RModule (ReaderT s m) (WriterT s r) where
   WriterT r |>>= f =
@@ -209,9 +203,9 @@ instance (RModule m r) => RModule (ReaderT s m) (WriterT s r) where
 
 -- State + Writer
 
-instance RModule (State s) (Writer s) where
-  w |>>= f = WriterT $ Identity $ runState (f a) s
-   where (a, s)  = runWriter w
+instance (RModule m r) => RModule (StateT s m) (WriterT s r) where
+  WriterT r |>>= f =
+    WriterT $ r |>>= (\(a, s) -> runStateT (f a) s)
 
 -- MonoidIdeal
 
