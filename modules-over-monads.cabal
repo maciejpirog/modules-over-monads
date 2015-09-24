@@ -21,7 +21,9 @@ synopsis:            Modules over monads, idealised monads, ideal monads, resump
 description:         A module over a monad is a data type that Kleisli-compose with the monad, but not necessarily with itself. Modules allow to define monadic computations in context or \"subsets\" of the effects implemented by a monad.
 
 -- URL for the project homepage or repository.
-homepage:            https://github.com/maciejpirog/modules
+homepage:            http://github.com/maciejpirog/modules
+
+bug-reports:         http://github.com/maciejpirog/modules/issues
 
 -- The license under which the package is released.
 license:             MIT
