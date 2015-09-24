@@ -1,4 +1,10 @@
-{-# LANGUAGE TypeFamilies, FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, TypeOperators, TupleSections #-}
+{-# LANGUAGE TypeFamilies,
+             FlexibleInstances,
+             FlexibleContexts,
+             MultiParamTypeClasses,
+             TypeOperators,
+             TupleSections
+ #-}
 
 {-|
 Module      : Control.Monad.Module
@@ -10,10 +16,14 @@ Stability   : experimental
 Haskell implementation of
 
 * Left and right modules over monads. 
-For abstract nonsense, consult M. Piróg, N. Wu, J. Gibbons /Modules over monads and their algebras/ <https://coalg.org/calco15/papers/p18-Piróg.pdf>.
+For abstract nonsense, consult M. Piróg, N. Wu, J. Gibbons
+/Modules over monads and their algebras/
+<https://coalg.org/calco15/papers/p18-Piróg.pdf>.
 
 * Idealised and ideal monads.
-For abstract nonsense, consult S. Milius /Completely iterative algebras and completely iterative monads/ <http://www.iti.cs.tu-bs.de/~milius/phd/M1.pdf>.
+For abstract nonsense, consult S. Milius
+/Completely iterative algebras and completely iterative monads/
+<http://www.iti.cs.tu-bs.de/~milius/phd/M1.pdf>.
 -}
 module Control.Monad.Module
   (
@@ -132,14 +142,15 @@ fuse (Left  a) = return a
 fuse (Right r) = embed r
 
 -- | Restrict an ideal monad morphism (= monad morphism that
--- preserves @'split'@ to the ideal.
+-- preserves @'split'@) to the ideal.
 restriction :: (MonadIdeal m, MonadIdeal n) => (m a -> n a) -> (Ideal m a -> Ideal n a)
 restriction f = aux . split . f . embed
  where
   aux (Right i) = i
   aux (Left _)  = error "not an ideal monad morphism"
 
--- | Extend the morphism of ideals to the whole monad.
+-- | Extend a morphism of ideals (a natural transformation that
+-- commutes with @'|>>='@) to the whole monad.
 extension :: (MonadIdeal m, MonadIdeal n) => (Ideal m a -> Ideal n a) -> m a -> n a
 extension f m = case split m of
                   Left a  -> return a
@@ -195,17 +206,17 @@ instance MonadIdeal (Either e) where
   split (Left  e) = Right $ Const e
   split (Right a) = Left  a
 
--- Reader + Writer
+-- ReaderT + WriterT
 
 instance (RModule m r) => RModule (ReaderT s m) (WriterT s r) where
   WriterT r |>>= f =
-    WriterT $ r |>>= (\(a, s) -> liftM (, s) $ runReaderT (f a) s)
+    WriterT $ r |>>= \(a, s) -> liftM (, s) $ runReaderT (f a) s
 
--- State + Writer
+-- StateT + WriterT
 
 instance (RModule m r) => RModule (StateT s m) (WriterT s r) where
   WriterT r |>>= f =
-    WriterT $ r |>>= (\(a, s) -> runStateT (f a) s)
+    WriterT $ r |>>= \(a, s) -> runStateT (f a) s
 
 -- MonoidIdeal
 

@@ -20,12 +20,14 @@ module Control.Monad.State.SnapStates
     -- * The @'SnapStatesT'@ transformer
 
     SnapStatesT(..),
-    SnapStates,
     snap,
     implant,
     stateToSnap,
     snapToState,
-    execSnapStates
+    execSnapStatesT,
+    SnapStates,
+    execSnapStates,
+    snappedStates
 
     -- * Examples
 
@@ -63,11 +65,9 @@ import Control.Monad.Module.Resumption (Resumption(..), liftMonad)
 -- F m s x = m (x, s)
 -- AllStatesT s m a = s -> m ('Free' (F m s) a, s)
 -- @
-newtype SnapStatesT s m a = SnapStatesT { runAllStatesT ::
+newtype SnapStatesT s m a = SnapStatesT { runSnapStatesT ::
   Resumption (StateT s m) (WriterT s (WrappedMonad m)) a }
  deriving(Functor, Applicative, Monad, Apply, Bind)
-
-type SnapStates s = SnapStatesT s Identity
 
 instance MonadTrans (SnapStatesT s) where
   lift = SnapStatesT . liftMonad . lift 
@@ -98,6 +98,12 @@ snapToState (SnapStatesT (Resumption (StateT f))) =
  where
   aux s (Pure a) = return (a, s)
   aux s (Free (WriterT (WrapMonad m))) = m >>= \(f, s') -> aux s' f
+
+execSnapStatesT :: (Monad m) => SnapStatesT s m a -> s -> Resumption m (WriterT s (WrappedMonad m)) a
+execSnapStatesT (SnapStatesT (Resumption (StateT f))) s =
+  Resumption $ liftM (Free . WriterT . return) $ f s
+
+type SnapStates s = SnapStatesT s Identity
 
 -- | Evaluate a @'SnapStates'@ computation and extract the list of
 -- the snapped states (+ the last, not necessarily snapped state).
