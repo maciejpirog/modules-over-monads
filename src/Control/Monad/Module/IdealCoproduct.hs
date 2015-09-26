@@ -1,4 +1,11 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies,
+             MultiParamTypeClasses,
+             FlexibleContexts,
+             FlexibleInstances,
+             RankNTypes,
+             ScopedTypeVariables,
+             StandaloneDeriving
+ #-}
 
 {-|
 Module      : Control.Monad.Module.IdealCoproduct

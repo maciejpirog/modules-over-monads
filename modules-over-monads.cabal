@@ -56,7 +56,7 @@ source-repository head
 library
   -- Modules exported by the library.
   exposed-modules:     Data.Monoid.MonoidIdeal, Control.Monad.Module, Control.Monad.Module.Resumption, Control.Monad.Module.IdealCoproduct, Control.Monad.Free.NonPure, Data.List.AtLeast2, Control.Monad.State.AllStates, Control.Monad.State.SnapStates
-  
+
   -- Modules included in this library but not exported.
   -- other-modules:       
   

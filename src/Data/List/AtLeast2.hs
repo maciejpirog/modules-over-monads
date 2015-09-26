@@ -1,4 +1,7 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, DeriveFunctor #-}
+{-# LANGUAGE TypeFamilies,
+             MultiParamTypeClasses,
+             DeriveFunctor
+ #-}
 
 {-|
 Module      : Data.List.AtLeast2

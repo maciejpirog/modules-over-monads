@@ -1,4 +1,9 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, RankNTypes, DeriveFunctor, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies,
+             MultiParamTypeClasses,
+             RankNTypes,
+             DeriveFunctor,
+             GeneralizedNewtypeDeriving
+ #-}
 
 {-|
 Module      : Control.Monad.Free.NonPure

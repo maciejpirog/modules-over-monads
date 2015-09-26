@@ -1,7 +1,13 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, DeriveFunctor, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses,
+             FlexibleInstances,
+             FlexibleContexts,
+             DeriveFunctor,
+             GeneralizedNewtypeDeriving,
+             TupleSections
+ #-}
 
 {-|
-Module      : Control.Monad.State.AllStates
+Module      : Control.Monad.State.SnapStates
 Copyright   : (c) 2015 Maciej Piróg
 License     : MIT
 Maintainer  : maciej.adam.pirog@gmail.com
@@ -12,19 +18,27 @@ ability to take a \"snapshot\" of the current state. Snapshots are
 stored in a stream, which could be infinite, which means that it is
 possible to create non-terminating stateful computations.
 
-This transformer is similar to @'AllStates'@, but the user can
+This transformer is similar to @'AllStatesT'@, but the user can
 choose which states are saved.
 -}
 module Control.Monad.State.SnapStates
   (
-    -- * The @'SnapStatesT'@ transformer
+    -- * The @SnapStatesT@ transformer
 
     SnapStatesT(..),
     snap,
     implant,
-    stateToSnap,
-    snapToState,
     execSnapStatesT,
+
+    -- ** Conversion between State-like transformers
+
+    snapToState,
+    stateToSnap,
+    allToSnap,
+    snapToAll,
+   
+    -- * The @SnapStates@ monad
+
     SnapStates,
     execSnapStates,
     snappedStates
@@ -42,13 +56,20 @@ import Control.Applicative (Applicative, WrappedMonad(..))
 import Control.Monad (liftM)
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.Identity (Identity(..))
+import Control.Monad.Reader (ReaderT(..))
 import Control.Monad.Writer (WriterT(..))
 import Control.Monad.State (MonadState(..), StateT(..))
 import Control.Monad.Free (Free(..), liftF)
 import Data.Functor.Apply (Apply)
 import Data.Functor.Bind (Bind)
 
-import Control.Monad.Module.Resumption (Resumption(..), liftMonad)
+import Control.Monad.Module.Resumption (Resumption(..), liftMonad,
+                                        foldFirstLayer, splitHead)
+import Control.Monad.State.AllStates (AllStatesT(..))
+
+--
+-- SNAPSTATEST
+--
 
 -- | A monad transformer that acts like @'StateT'@, but it also
 -- records selected intermediate states in a (possibly infinite!)
@@ -87,11 +108,19 @@ snap = SnapStatesT $ Resumption $ StateT
 implant :: (Monad m) => s -> SnapStatesT s m ()
 implant s = do { x <- get; put s; snap; put x }
 
--- | Lift @'StateT'@ to @'AllStatesT'@. It is a monad morphism.
-stateToSnap :: (Monad m) => StateT s m a -> SnapStatesT s m a
-stateToSnap = SnapStatesT . liftMonad
+-- | Use an initial state to evaluate a @'SnapStatesT'@ computation
+-- and extract the snapped states interleaved with monadic
+-- computations of the trasformed monad.
+execSnapStatesT :: (Monad m) => SnapStatesT s m a -> s -> Resumption m (WriterT s (WrappedMonad m)) a
+execSnapStatesT (SnapStatesT (Resumption (StateT f))) s =
+  Resumption $ liftM (Free . WriterT . return) $ f s
 
--- | Forget the intermediate states. It is a monad morphism.
+--
+-- CONVERSION
+--
+
+-- | Forget the intermediate states.
+-- It is a monad morphism.
 snapToState :: (Monad m) => SnapStatesT s m a -> StateT s m a
 snapToState (SnapStatesT (Resumption (StateT f))) =
   StateT $ \s -> f s >>= \(g, s') -> aux s' g
@@ -99,15 +128,43 @@ snapToState (SnapStatesT (Resumption (StateT f))) =
   aux s (Pure a) = return (a, s)
   aux s (Free (WriterT (WrapMonad m))) = m >>= \(f, s') -> aux s' f
 
-execSnapStatesT :: (Monad m) => SnapStatesT s m a -> s -> Resumption m (WriterT s (WrappedMonad m)) a
-execSnapStatesT (SnapStatesT (Resumption (StateT f))) s =
-  Resumption $ liftM (Free . WriterT . return) $ f s
+-- | Lift @'StateT'@ to @'AllStatesT'@.
+-- It is a monad morphism.
+stateToSnap :: (Monad m) => StateT s m a -> SnapStatesT s m a
+stateToSnap = SnapStatesT . liftMonad
+
+-- | Convert @'AllStatesT'@ to @'SnapStatesT'@.
+-- Not a monad morphism.
+allToSnap :: (Monad m) => AllStatesT s m a -> SnapStatesT s m a
+allToSnap (AllStatesT r) = SnapStatesT $ Resumption $
+  foldFirstLayer readerWriterToState r
+
+-- auxilliary
+readerWriterToState :: (Monad m) => ReaderT s m (Either a (WriterT s (WrappedMonad m) a)) -> StateT s m a
+readerWriterToState (ReaderT f) = StateT $ \s ->
+  f s >>= either (return . (,s)) (unwrapMonad . runWriterT)
+
+-- | Convert @'SnapStatesT'@ to @'AllStatesT'@.
+-- Not a monad morphism.
+snapToAll :: (Monad m) => SnapStatesT s m a -> AllStatesT s m a
+snapToAll (SnapStatesT r) = AllStatesT $ splitHead stateToReaderWriter r
+
+-- auxilliary
+stateToReaderWriter :: (Monad m) => StateT s m a -> ReaderT s m (WriterT s (WrappedMonad m) a)
+stateToReaderWriter (StateT f) = ReaderT $
+  \s -> return $ WriterT $ WrapMonad $ f s
+
+--
+-- SNAPSTATES
+--
 
 type SnapStates s = SnapStatesT s Identity
 
--- | Evaluate a @'SnapStates'@ computation and extract the list of
--- the snapped states (+ the last, not necessarily snapped state).
--- If the computation is non-terminating, the list is infinite.
+-- | Use an initial state to evaluate a @'SnapStates'@ computation
+-- and extract the list of the snapped states (+ the last, not
+-- necessarily snapped state). If the computation is
+-- non-terminating and there are infinitely many snapped states,
+-- the list is infinite.
 execSnapStates :: SnapStates s a -> s -> [s]
 execSnapStates (SnapStatesT (Resumption (StateT t))) s =
   s' : fromFree f
@@ -119,8 +176,8 @@ execSnapStates (SnapStatesT (Resumption (StateT t))) s =
 
 -- | Evaluate a @'SnapStates'@ computation and extract the list of
 -- the snapped states (without the last one, unless it was
--- snapped). If the computation is non-terminating, the list is
--- infinite.
+-- snapped). If the computation is non-terminating and there are
+-- infinitely many snapped states, the list is infinite.
 snappedStates :: SnapStates s a -> s -> [s]
 snappedStates (SnapStatesT (Resumption (StateT t))) s =
   case t s of

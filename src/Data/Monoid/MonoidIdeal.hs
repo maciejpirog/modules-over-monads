@@ -1,4 +1,8 @@
-{-# LANGUAGE TypeFamilies, FlexibleInstances, DefaultSignatures, DeriveFunctor #-}
+{-# LANGUAGE TypeFamilies,
+             FlexibleInstances,
+             DefaultSignatures,
+             DeriveFunctor
+ #-}
 
 {-|
 Module      : Data.Monoid.MonoidIdeal

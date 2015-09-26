@@ -75,7 +75,8 @@ class (Functor r, Monad m) => RModule m r where
   actr :: r (m a) -> r a
   actr r = r |>>= id
 
-{- | Left modules are /op/-dual to right modules. Instances should satisfy the following:
+{- | Left modules are /op/-dual to right modules. Instances should
+satisfy the following:
 
 * @'return' a '>>=|' f  =  f a@
 
