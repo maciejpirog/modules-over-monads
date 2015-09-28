@@ -18,7 +18,8 @@ stability:           experimental
 synopsis:            Modules over monads, idealised monads, ideal monads, resumptions
 
 -- A longer description of the package.
-description:         A module over a monad is a data type that Kleisli-compose with the monad, but not necessarily with itself. Modules allow to define monadic computations in context or \"subsets\" of the effects implemented by a monad.
+description:
+  A /module/ over a monad is a data type that Kleisli-compose with the monad, but not necessarily with itself. Modules allow to define monadic computations in context or \"subsets\" of the effects implemented by a monad. An /idealised monad/ is a monad together with a module that can be coherently embedded in the monad (e.g. when the module represents a \"subset\" of effects). A monad is /ideal/ if it is a coproduct (disjoint sum) of pure values and effectful computations. These three concepts are used to build some data structures, like a generalised resumption monad.
 
 -- URL for the project homepage or repository.
 homepage:            http://github.com/maciejpirog/modules
@@ -55,7 +56,7 @@ source-repository head
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Data.Monoid.MonoidIdeal, Control.Monad.Module, Control.Monad.Module.Resumption, Control.Monad.Module.IdealCoproduct, Control.Monad.Free.NonPure, Data.List.AtLeast2, Control.Monad.State.AllStates, Control.Monad.State.SnapStates
+  exposed-modules:     Data.Monoid.MonoidIdeal, Control.Monad.Module, Control.Monad.Module.Resumption, Control.Monad.Module.IdealCoproduct, Control.Monad.Free.NonPure, Data.List.AtLeast2, Control.Monad.State.AllStates, Control.Monad.State.AllStates.Alt, Control.Monad.State.SnapStates
 
   -- Modules included in this library but not exported.
   -- other-modules:       

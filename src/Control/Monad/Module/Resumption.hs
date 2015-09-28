@@ -21,9 +21,17 @@ Generalised resumption monad a la M. Piróg, N. Wu, J. Gibbons
 The @'Resumption'@ datatype has a couple of interesting
 instances for different modules. For example:
 
-* "Control.Monad.State.AllStates" - State-like transformer that accumulates all the intermediate states
+* 'Control.Monad.State.AllStates.AllStatesT'
+(in "Control.Monad.State.AllStates") - State-like transformer that
+accumulates all the intermediate states
 
-* "Control.Monad.State.SnapStates" - State-like transformer that accumulates the selected intermediate states
+* 'Control.Monad.State.AllStates.Alt.AllStatesT'
+(in "Control.Monad.State.AllStates.Alt") - An alternative version
+of the above (the same underlying monad, but a different
+transformer)
+
+* "Control.Monad.State.SnapStates" - State-like transformer that
+accumulates only selected intermediate states
 
 * 'MoggiResumption' - also known as the free monad transformer
 -}

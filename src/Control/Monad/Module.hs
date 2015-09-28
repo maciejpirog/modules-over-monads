@@ -28,11 +28,27 @@ For abstract nonsense, consult S. Milius
 module Control.Monad.Module
   (
     -- * Right modules over monads
+
     RModule(..),
+
+    -- ** Example: Reader and \"Writer\"
+
+    -- $readerAndWriter
+
+    -- ** Example: State and \"Writer\"
+
+    -- $stateAndWriter
+
     -- * Left modules over monads
+
     LModule(..),
-    -- * Idealised and ideal monads
+
+    -- * Idealised monads
+
     Idealised(..),
+
+    -- * Ideal monads
+
     MonadIdeal(..),
     fuse,
     restriction,
@@ -57,6 +73,10 @@ import Control.Monad.Free.NonPure (NonPure(..))
 import Data.List.AtLeast2 (AtLeast2(..), fromNonEmpty, toNonEmpty)
 import Data.Monoid.MonoidIdeal (MonoidIdeal(..))
 
+--
+-- RIGHT MODULES
+--
+
 {- | Captures the relationship of a functor being a /right module/
 over a monad, which is a similar concept to modules over rings or
 modules over groups (aka /G/-sets) in abstract algebra. Modules can
@@ -78,6 +98,62 @@ class (Functor r, Monad m) => RModule m r where
   actr :: r (m a) -> r a
   actr r = r |>>= id
 
+{- $readerAndWriter
+
+In this example, for clarity (?), we ignore @newtype@ constructors.
+@'Control.Monad.Reader.Reader'@ is the following monad:
+
+@
+type Reader s a = s -> a
+return a = \\s -> a
+f \>\>= g = \\s -> g (f s) s
+@
+
+We use the @'Control.Monad.Writer.Writer'@ datatype, but we do not
+use its monadic structure. So, for our purposes, it is defined as:
+
+@
+type Writer s a = (a, s)
+@
+
+It is a right module over @'Control.Monad.Reader.Reader'@:
+
+@
+(|>>=) :: Writer s a -> (a -> Reader s b) -> Writer s b
+(a, s) |>>= g = (g a s, s)
+@
+
+We can think of the @'Control.Monad.Writer.Writer'@ datatype as a
+context of execution of @'Control.Monad.Reader.Reader'@
+computations: @'Control.Monad.Writer.Writer'@ provides the initial
+data that is read by the Reader monad.
+-}
+
+{- $stateAndWriter
+
+Let the Writer datatype be as above.
+The @'Control.Monad.State.State'@ monad can be defined as follows:
+
+@
+type State s a = s -> (a, s)
+return a = \\s -> (a, s)
+f >>= g = \\s -> let (a, s') = f s in g a s'
+@
+
+The Writer datatype is the execution context, as it provides the
+initial state, and records the final value and the final state:
+
+@
+actr :: Writer s (State s a) -> Writer s a
+   -- = (State s a, s) -> (a, s)
+actr (f, s) = f s 
+@
+-}
+
+--
+-- LEFT MODULES
+--
+
 {- | Left modules are /op/-dual to right modules. Instances should
 satisfy the following:
 
@@ -94,6 +170,10 @@ class (Functor l, Monad m) => LModule m l where
   -- | Join a computation with the outer level given by the module.
   actl :: m (l a) -> l a
   actl m = m >>=| id
+
+--
+-- IDEALISED MONADS
+--
 
 {- | Captures the fact that the monad @m@ is /idealised/ with @r@.
 This means that @r@ represents a subset of computations in @m@
@@ -112,6 +192,10 @@ class (RModule m r) => Idealised m r where
   -- | Represent a computation in @r@ as a computation in @m@.
   embed :: r a -> m a
 
+--
+-- IDEAL MONADS
+--
+
 {- | The 'MonadIdeal' class is a subclass of 'Monad' with the
 following property: Given an ideal monad @m@, each value of @m a@
 is either a pure value of the type @a@ (this can be obtained with
@@ -125,9 +209,9 @@ semigroupad with freely adjoined unit.
 
 Instances should satisfy the following:
 
-* @'either' 'return' 'embed' . 'split' = 'id'@
+* @'either' 'return' 'embed' . 'split'  =  'id'@
 
-* @'split' . 'either' 'return' 'embed' = 'id'@
+* @'split' . 'either' 'return' 'embed'  =  'id'@
 -}
 class (Idealised m (Ideal m)) => MonadIdeal m where
 

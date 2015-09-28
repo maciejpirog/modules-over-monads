@@ -16,4 +16,8 @@ TODO List
 
 * More class instances
 
-* Comodules over Comonads, Coresumptions, Products of ideal comonads
+* Comodules over comonads, coresumptions, products of ideal comonads...
+
+* Modules over applicatives, alternatives?
+
+* Module transformers?
