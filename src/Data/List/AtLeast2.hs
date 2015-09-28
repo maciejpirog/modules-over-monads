@@ -20,7 +20,8 @@ module Data.List.AtLeast2
   (
     AtLeast2(..),
     toList,
-    toNonEmpty
+    toNonEmpty,
+    fromNonEmpty
   )
   where
 
@@ -31,8 +32,6 @@ import Data.Foldable (Foldable(..))
 import Data.Traversable (Traversable(..))
 import Data.Functor.Apply (Apply(..))
 import Data.Functor.Bind (Bind(..))
-
-import Control.Monad.Module
 
 {- | List with at least two elements -}
 data AtLeast2 a = a :|: NonEmpty a
@@ -63,14 +62,3 @@ fromNonEmpty (x :| y : xs) = x :|: y :| xs
 
 toNonEmpty :: AtLeast2 a -> NonEmpty a
 toNonEmpty (x :|: y :| xs) = x :| y : xs
-
-instance RModule NonEmpty AtLeast2 where
-  m |>>= f = fromNonEmpty $ toNonEmpty m >>= f
-
-instance Idealised NonEmpty AtLeast2 where
-  embed = toNonEmpty
-
-instance MonadIdeal NonEmpty where
-  type Ideal NonEmpty = AtLeast2
-  split (x :| []) = Left x
-  split xs        = Right $ fromNonEmpty xs

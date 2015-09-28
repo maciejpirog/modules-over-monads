@@ -48,10 +48,13 @@ import Control.Monad.State (StateT(..), State(..), runState)
 import Control.Monad.Reader (Reader, runReader, ReaderT(..))
 import Control.Monad.Writer (Writer, runWriter, WriterT(..))
 import Control.Monad.Codensity (Codensity(..))
+import Control.Comonad.Env (EnvT(..), Env(..))
 import Data.Void (Void(..))
 import Data.Functor.Compose (Compose(..))
+import Data.List.NonEmpty (NonEmpty(..))
 
-
+import Control.Monad.Free.NonPure (NonPure(..))
+import Data.List.AtLeast2 (AtLeast2(..), fromNonEmpty, toNonEmpty)
 import Data.Monoid.MonoidIdeal (MonoidIdeal(..))
 
 {- | Captures the relationship of a functor being a /right module/
@@ -207,17 +210,43 @@ instance MonadIdeal (Either e) where
   split (Left  e) = Right $ Const e
   split (Right a) = Left  a
 
+-- NonEmpty + AtLeast2
+
+instance RModule NonEmpty AtLeast2 where
+  m |>>= f = fromNonEmpty $ toNonEmpty m >>= f
+
+instance Idealised NonEmpty AtLeast2 where
+  embed = toNonEmpty
+
+instance MonadIdeal NonEmpty where
+  type Ideal NonEmpty = AtLeast2
+  split (x :| []) = Left x
+  split xs        = Right $ fromNonEmpty xs
+
 -- ReaderT + WriterT
 
 instance (RModule m r) => RModule (ReaderT s m) (WriterT s r) where
   WriterT r |>>= f =
     WriterT $ r |>>= \(a, s) -> liftM (, s) $ runReaderT (f a) s
 
+-- ReaderR + EnvT
+
+instance (RModule m r) => RModule (ReaderT s m) (EnvT s r) where
+  EnvT s r |>>= f =
+    EnvT s $ r |>>= \a -> runReaderT (f a) s
+
 -- StateT + WriterT
 
 instance (RModule m r) => RModule (StateT s m) (WriterT s r) where
   WriterT r |>>= f =
     WriterT $ r |>>= \(a, s) -> runStateT (f a) s
+
+-- State + Env (NOT StateT + EnvT !!!)
+
+instance RModule (State s) (Env s) where
+  EnvT s (Identity a) |>>= f =
+    let Identity (a', s') = runStateT (f a) s
+     in EnvT s' (Identity a')
 
 -- MonoidIdeal
 
@@ -238,6 +267,19 @@ instance (MonoidIdeal r) => MonadIdeal (Writer r) where
                Just i  -> Right $ WriterT $ Identity (a, i)
    where
     (a, r) = runWriter w
+
+-- Free
+
+instance (Functor f) => RModule (Free f) (NonPure f) where
+  (NonPure f) |>>= g = NonPure (fmap (>>= g) f)
+
+instance (Functor f) => Idealised (Free f) (NonPure f) where
+  embed = Free . unNonPure
+
+instance (Functor f) => MonadIdeal (Free f) where
+  type Ideal (Free f) = NonPure f
+  split (Pure x) = Left x
+  split (Free f) = Right $ NonPure f
 
 --
 -- L-INSTANCES

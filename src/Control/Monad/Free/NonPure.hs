@@ -34,22 +34,9 @@ import Data.Traversable (Traversable(..))
 import Data.Functor.Apply (Apply(..))
 import Data.Functor.Bind (Bind(..))
 
-import Control.Monad.Module
-
 -- | Type of \"free monads\" with at least one level of structure.
 newtype NonPure f a = NonPure { unNonPure :: f (Free f a) }
  deriving(Functor)
-
-instance (Functor f) => RModule (Free f) (NonPure f) where
-  (NonPure f) |>>= g = NonPure (fmap (>>= g) f)
-
-instance (Functor f) => Idealised (Free f) (NonPure f) where
-  embed = Free . unNonPure
-
-instance (Functor f) => MonadIdeal (Free f) where
-  type Ideal (Free f) = NonPure f
-  split (Pure x) = Left x
-  split (Free f) = Right $ NonPure f
 
 instance (Functor f, Foldable f) => Foldable (NonPure f) where
   foldMap g f = foldMap g (toFree f)
