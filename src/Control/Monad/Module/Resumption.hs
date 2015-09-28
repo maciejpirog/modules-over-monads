@@ -30,8 +30,8 @@ accumulates all the intermediate states
 of the above (the same underlying monad, but a different
 transformer)
 
-* "Control.Monad.State.SnapStates" - State-like transformer that
-accumulates only selected intermediate states
+* 'Control.Monad.State.SnapStates.SnapStatesT' - State-like
+transformer that accumulates only selected intermediate states
 
 * 'MoggiResumption' - also known as the free monad transformer
 -}

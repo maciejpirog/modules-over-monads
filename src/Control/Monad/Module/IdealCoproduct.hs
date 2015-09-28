@@ -21,14 +21,14 @@ abstract nonsense, consult N. Ghani, T. Uustalu
 -}
 module Control.Monad.Module.IdealCoproduct
   (
-    -- * The @'Turns'@ datatype
+    -- * The @Turns@ datatype
     Turns(..),
     foldTurns,
     interpTurns,
     hoistTurns,
     turnsToFree,
     turnsToFreeC,
-    -- * The @'IdealCoproduct'@ datatype
+    -- * The @IdealCoproduct@ datatype
     IdealCoproduct(..),
     AmbiTurns(..),
     sym,

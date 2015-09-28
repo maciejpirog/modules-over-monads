@@ -305,7 +305,7 @@ not survive the bind operation:
 \ 
 =
 \ 
-\\s -> (Free (Free (Free (Pure b,  s5), s4), s2), s1)
+\\s -> (Free (Free (Free (Pure b, s5), s4), s2), s1)
 @
 
 Thus, to /snap/ the current state and save it permanently, we need

@@ -56,7 +56,7 @@ disjoint sum of @'MIdeal' m@ and the adjoined unit.
 
 module Data.Monoid.MonoidIdeal
   (
-    -- * @'MonoidIdeal'@ typeclass
+    -- * The @MonoidIdeal@ class
     MonoidIdeal(..),
     -- * Products of ideal monoids
     -- $prods
