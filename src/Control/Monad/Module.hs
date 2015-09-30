@@ -30,10 +30,8 @@ module Control.Monad.Module
     -- * Right modules over monads
 
     RModule(..),
-
-    -- ** Example: Reader and \"Writer\"
-
-    -- $readerAndWriter
+    RId,
+    wrapId,
 
     -- ** Example: State and \"Writer\"
 
@@ -98,15 +96,49 @@ class (Functor r, Monad m) => RModule m r where
   actr :: r (m a) -> r a
   actr r = r |>>= id
 
-{- $readerAndWriter
+-- | Each monad can be seen as its own module with @'|>>='@ given
+-- by @'>>='@. To distinguish between the uses of a monad as a
+-- monad and as its module, we do not define the following
+-- instance:
+--
+-- @instance Monad m => RModule m m@
+--
+-- Instead, we wrap the use of @m@ as a module in @'WrappedMonad'@:
+--
+-- @instance Monad m => RModule m (WrappedMonad m)@
+--
+-- Since we sometimes use datatypes of monad transformers as
+-- \"module transformers\", the type @'WrappedMonad' 'Identity'@
+-- occurs pretty often. For example, it is the case that
+--
+-- @instance (RModule m r) => RModule (ReaderT s m) (WriterT s r)@
+--
+-- but it does not mean that
+--
+-- @instance RModule (Reader s) (Writer s)@
+--
+-- Rather, it is the case that
+--
+-- @instance RModule (Reader s) (WriterT s (WrappedMonad Identity))@
+--
+-- This could be alternatively written as:
+--
+-- @instance RModule (Reader s) (WriterT s RId)@
+type RId = WrappedMonad Identity
+
+-- | Wrap a value in both @'Identity'@ and @'WrapMonad'@.
+wrapId :: a -> RId a
+wrapId = WrapMonad . Identity
+
+{- $stateAndWriter
 
 In this example, for clarity (?), we ignore @newtype@ constructors.
-@'Control.Monad.Reader.Reader'@ is the following monad:
+The @'Control.Monad.State.State'@ monad can be defined as follows:
 
 @
-type Reader s a = s -> a
-return a = \\s -> a
-f \>\>= g = \\s -> g (f s) s
+type State s a = s -> (a, s)
+return a = \\s -> (a, s)
+f >>= g = \\s -> let (a, s') = f s in g a s'
 @
 
 We use the @'Control.Monad.Writer.Writer'@ datatype, but we do not
@@ -114,30 +146,6 @@ use its monadic structure. So, for our purposes, it is defined as:
 
 @
 type Writer s a = (a, s)
-@
-
-It is a right module over @'Control.Monad.Reader.Reader'@:
-
-@
-(|>>=) :: Writer s a -> (a -> Reader s b) -> Writer s b
-(a, s) |>>= g = (g a s, s)
-@
-
-We can think of the @'Control.Monad.Writer.Writer'@ datatype as a
-context of execution of @'Control.Monad.Reader.Reader'@
-computations: @'Control.Monad.Writer.Writer'@ provides the initial
-data that is read by the Reader monad.
--}
-
-{- $stateAndWriter
-
-Let the Writer datatype be as above.
-The @'Control.Monad.State.State'@ monad can be defined as follows:
-
-@
-type State s a = s -> (a, s)
-return a = \\s -> (a, s)
-f >>= g = \\s -> let (a, s') = f s in g a s'
 @
 
 The Writer datatype is the execution context, as it provides the
@@ -251,6 +259,9 @@ extension f m = case split m of
 instance (Monad m) => RModule m (WrappedMonad m) where
   WrapMonad m |>>= k = WrapMonad (m >>= k)
 
+instance (Monad m) => Idealised m (WrappedMonad m) where
+  embed = unwrapMonad
+
 -- Composition
 
 instance (Functor f, RModule m r) => RModule m (f `Compose` r) where
@@ -334,21 +345,19 @@ instance RModule (State s) (Env s) where
 
 -- MonoidIdeal
 
-instance (MonoidIdeal r, i ~ MIdeal r) => RModule (Writer r) (Writer i) where
-  WriterT (Identity (a, w)) |>>= f =
-     case f a of
-       WriterT (Identity (b, r)) ->
-         WriterT $ Identity (b, w `mir` r)
+instance (MonoidIdeal w, i ~ MIdeal w, RModule m r) => RModule (WriterT w m) (WriterT i r) where
+  WriterT r |>>= f = WriterT $ r |>>=
+    \(a, i) -> liftM (\(b, w) -> (b, i `mir` w)) $ runWriterT $ f a
 
-instance (MonoidIdeal r, i ~ MIdeal r) => Idealised (Writer r) (Writer i) where
-  embed (WriterT (Identity (a, w))) =
-     WriterT $ Identity (a, miembed w) 
+instance (MonoidIdeal w, i ~ MIdeal w, Idealised m r) => Idealised (WriterT w m) (WriterT i r) where
+  embed (WriterT r) = WriterT $ embed $
+                        fmap (\(a, w) -> (a, miembed w)) r
 
 instance (MonoidIdeal r) => MonadIdeal (Writer r) where
-  type Ideal (Writer r) = Writer (MIdeal r)
+  type Ideal (Writer r) = WriterT (MIdeal r) (WrappedMonad Identity)
   split w  = case misplit r of
                Nothing -> Left a
-               Just i  -> Right $ WriterT $ Identity (a, i)
+               Just i  -> Right $ WriterT $ WrapMonad $ Identity (a, i)
    where
     (a, r) = runWriter w
 
